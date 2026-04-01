@@ -70,15 +70,13 @@ export default function CreditSummary({ data }: CreditSummaryProps) {
         <Col span={12}>
           <Card title="在贷机构">
             {data.active_loans && data.active_loans.length > 0 ? (
-              data.active_loans.map((loan, i) => (
-                <Descriptions key={i} column={1} size="small" bordered style={{ marginBottom: 8 }}>
-                  {Object.entries(loan).map(([k, v]) => (
-                    <Descriptions.Item key={k} label={k}>
-                      {typeof v === 'number' ? fmtMoney(v) : String(v ?? '-')}
-                    </Descriptions.Item>
-                  ))}
-                </Descriptions>
-              ))
+              <Descriptions column={1} size="small" bordered>
+                {data.active_loans.map((loan: Record<string, unknown>, i: number) => (
+                  <Descriptions.Item key={i} label={String(loan.type ?? '未知')}>
+                    {typeof loan.balance === 'number' ? fmtMoney(loan.balance) : '-'}
+                  </Descriptions.Item>
+                ))}
+              </Descriptions>
             ) : (
               <Tag>暂无在贷记录</Tag>
             )}

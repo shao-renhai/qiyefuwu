@@ -63,13 +63,14 @@ def detect_anomalies(
     for tx in transactions:
         amount = max(tx.get("income", 0), tx.get("expense", 0))
         if amount > threshold:
+            direction = "收入" if tx.get("income", 0) > tx.get("expense", 0) else "支出"
             anomalies.append({
                 "type": "large_amount",
                 "date": tx["date"],
                 "counterparty": tx.get("counterparty", ""),
-                "description": tx.get("description", ""),
                 "amount": amount,
-                "detail": f"单笔金额{amount}超过月均收入的2倍({threshold})",
+                "direction": direction,
+                "description": f"单笔金额{amount:,.0f}元，超过月均收入2倍({threshold:,.0f}元)",
             })
 
     # --- Round number detection ---
@@ -82,9 +83,11 @@ def detect_anomalies(
         if count >= 3:
             anomalies.append({
                 "type": "round_number",
+                "date": "",
+                "counterparty": "",
                 "amount": amount,
-                "count": count,
-                "detail": f"整数金额{amount}出现{count}次",
+                "direction": "",
+                "description": f"大额整数金额{amount:,.0f}元出现{count}次，疑似资金调动",
             })
 
     # --- Regular pattern detection ---
@@ -98,10 +101,11 @@ def detect_anomalies(
         if count >= 3:
             anomalies.append({
                 "type": "regular_pattern",
+                "date": "",
                 "counterparty": counterparty,
                 "amount": amount,
-                "count": count,
-                "detail": f"{counterparty}以金额{amount}交易{count}次",
+                "direction": "",
+                "description": f"与{counterparty}发生{count}次相同金额({amount:,.0f}元)交易",
             })
 
     return anomalies
@@ -157,17 +161,25 @@ def analyze_bank_statement(
             income_by_cp[cp] += tx.get("income", 0)
             expense_by_cp[cp] += tx.get("expense", 0)
 
-    top_income_sources = sorted(
-        [{"counterparty": k, "total": v} for k, v in income_by_cp.items() if v > 0],
-        key=lambda x: x["total"],
+    top_income_sorted = sorted(
+        [(k, v) for k, v in income_by_cp.items() if v > 0],
+        key=lambda x: x[1],
         reverse=True,
     )[:5]
+    top_income_sources = [
+        {"counterparty": k, "amount": v, "ratio": round(v / total_income * 100, 1) if total_income > 0 else 0}
+        for k, v in top_income_sorted
+    ]
 
-    top_expense_categories = sorted(
-        [{"counterparty": k, "total": v} for k, v in expense_by_cp.items() if v > 0],
-        key=lambda x: x["total"],
+    top_expense_sorted = sorted(
+        [(k, v) for k, v in expense_by_cp.items() if v > 0],
+        key=lambda x: x[1],
         reverse=True,
     )[:5]
+    top_expense_categories = [
+        {"counterparty": k, "amount": v, "ratio": round(v / total_expense * 100, 1) if total_expense > 0 else 0}
+        for k, v in top_expense_sorted
+    ]
 
     # --- Monthly ending balances ---
     monthly_last_balance = {}

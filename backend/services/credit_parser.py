@@ -272,16 +272,31 @@ def extract_credit_data(text: str, reference_date: Optional[str] = None) -> dict
     overdue = parse_overdue_records(text)
     queries = parse_query_records(text, reference_date)
 
+    # Convert active_loans to list format for frontend
+    active_loans_list = debt["institution_details"]  # already a list of dicts with type+balance
+
+    # Convert overdue_records to list format for frontend
+    overdue_list = []
+    if overdue.get("current_overdue", 0) > 0:
+        overdue_list.append({"type": "当前逾期", "count": overdue["current_overdue"]})
+    if overdue.get("historical_overdue", 0) > 0:
+        overdue_list.append({"type": "历史逾期", "count": overdue["historical_overdue"]})
+    for detail in overdue.get("details", []):
+        overdue_list.append({"type": "逾期明细", "date": detail.get("date", ""), "amount": detail.get("amount", 0)})
+
+    # Remove 'entries' from query_records (frontend doesn't need it)
+    query_records = {k: v for k, v in queries.items() if k != "entries"}
+
     return {
         "total_debt": debt["total_debt"],
         "total_balance": debt["total_balance"],
         "institution_details": debt["institution_details"],
-        "active_loans": debt["active_loans"],
+        "active_loans": active_loans_list,
         "credit_card_total_limit": card["total_limit"],
         "credit_card_used": card["used"],
         "credit_card_usage_rate": card["usage_rate"],
-        "overdue_records": overdue,
-        "query_records": queries,
+        "overdue_records": overdue_list,
+        "query_records": query_records,
     }
 
 
