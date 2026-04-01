@@ -42,7 +42,7 @@ export interface CreditReport {
   client_id: number;
   filename: string;
   file_type: string;
-  parsed_data: CreditReportData;
+  parsed_data: CreditReportData | null;
   created_at: string;
 }
 
@@ -50,8 +50,8 @@ export interface MonthlySummaryItem {
   month: string;
   income: number;
   expense: number;
-  net_income: number;
-  transaction_count: number;
+  net: number;
+  tx_count: number;
 }
 
 export interface AnomalyItem {
@@ -59,8 +59,19 @@ export interface AnomalyItem {
   counterparty: string;
   amount: number;
   direction: string;
-  anomaly_type: string;
+  type: string;
   description: string;
+}
+
+export interface TopItem {
+  counterparty: string;
+  amount: number;
+  ratio: number;
+}
+
+export interface MonthlyBalance {
+  month: string;
+  balance: number;
 }
 
 export interface BankAnalysis {
@@ -68,14 +79,18 @@ export interface BankAnalysis {
   total_expense: number;
   monthly_avg_income: number;
   monthly_avg_expense: number;
-  monthly_avg_income_deduped: number;
-  monthly_avg_expense_deduped: number;
-  top_income_sources: Record<string, number>;
-  top_expense_categories: Record<string, number>;
-  monthly_ending_balances: Record<string, number>;
+  monthly_avg_net: number;
+  deduped_total_income: number;
+  deduped_total_expense: number;
+  deduped_monthly_avg_income: number;
+  deduped_monthly_avg_expense: number;
+  top_income_sources: TopItem[];
+  top_expense_categories: TopItem[];
+  monthly_ending_balances: MonthlyBalance[];
   min_balance: number;
   avg_balance: number;
-  transaction_count: number;
+  monthly_avg_tx_count: number;
+  daily_avg_tx_count: number;
   monthly_summary: MonthlySummaryItem[];
   anomalies: AnomalyItem[];
 }
@@ -84,8 +99,8 @@ export interface BankStatement {
   id: number;
   client_id: number;
   filename: string;
-  bank_name: string;
-  analysis: BankAnalysis;
+  bank_name: string | null;
+  analysis: BankAnalysis | null;
   created_at: string;
 }
 
@@ -98,12 +113,12 @@ export interface FullAnalysis {
 /* ─── API Functions ─── */
 
 export async function createClient(name: string): Promise<Client> {
-  const { data } = await http.post<Client>('/clients', { name });
+  const { data } = await http.post<Client>('/clients/', { name });
   return data;
 }
 
 export async function listClients(): Promise<Client[]> {
-  const { data } = await http.get<Client[]>('/clients');
+  const { data } = await http.get<Client[]>('/clients/');
   return data;
 }
 
@@ -113,8 +128,9 @@ export async function uploadCreditReport(
 ): Promise<CreditReport> {
   const form = new FormData();
   form.append('file', file);
+  form.append('client_id', String(clientId));
   const { data } = await http.post<CreditReport>(
-    `/clients/${clientId}/credit-report`,
+    '/credit-report/upload',
     form,
   );
   return data;
@@ -123,32 +139,35 @@ export async function uploadCreditReport(
 export async function uploadBankStatement(
   clientId: number,
   file: File,
+  accountHolder: string,
   bankName?: string,
 ): Promise<BankStatement> {
   const form = new FormData();
   form.append('file', file);
+  form.append('client_id', String(clientId));
+  form.append('account_holder', accountHolder);
   if (bankName) form.append('bank_name', bankName);
   const { data } = await http.post<BankStatement>(
-    `/clients/${clientId}/bank-statement`,
+    '/bank-statement/upload',
     form,
   );
   return data;
 }
 
 export async function getAnalysis(clientId: number): Promise<FullAnalysis> {
-  const { data } = await http.get<FullAnalysis>(`/clients/${clientId}/analysis`);
+  const { data } = await http.get<FullAnalysis>(`/analysis/${clientId}`);
   return data;
 }
 
 export async function exportExcel(clientId: number): Promise<Blob> {
-  const { data } = await http.get(`/clients/${clientId}/export/excel`, {
+  const { data } = await http.get(`/export/${clientId}/excel`, {
     responseType: 'blob',
   });
   return data;
 }
 
 export async function exportPdf(clientId: number): Promise<Blob> {
-  const { data } = await http.get(`/clients/${clientId}/export/pdf`, {
+  const { data } = await http.get(`/export/${clientId}/pdf`, {
     responseType: 'blob',
   });
   return data;

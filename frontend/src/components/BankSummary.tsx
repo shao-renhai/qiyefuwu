@@ -26,26 +26,25 @@ const monthColumns = [
   },
   {
     title: '净收入',
-    dataIndex: 'net_income',
-    key: 'net_income',
+    dataIndex: 'net',
+    key: 'net',
     render: (v: number) => (
       <span style={{ color: v >= 0 ? '#3f8600' : '#cf1322' }}>{fmtMoney(v)}</span>
     ),
   },
-  { title: '交易笔数', dataIndex: 'transaction_count', key: 'transaction_count' },
+  { title: '交易笔数', dataIndex: 'tx_count', key: 'tx_count' },
 ];
 
 export default function BankSummary({ data }: BankSummaryProps) {
-  const netProfit = (data.monthly_avg_income_deduped ?? data.monthly_avg_income) - (data.monthly_avg_expense_deduped ?? data.monthly_avg_expense);
-
   const monthlyData = (data.monthly_summary ?? []).map((m, i) => ({
     ...m,
     key: i,
   }));
 
-  const incomeSources = Object.entries(data.top_income_sources ?? {}).map(
-    ([name, amount]) => ({ name, amount }),
-  );
+  const incomeSources = (data.top_income_sources ?? []).map((item, i) => ({
+    ...item,
+    key: i,
+  }));
 
   return (
     <div>
@@ -59,7 +58,7 @@ export default function BankSummary({ data }: BankSummaryProps) {
           <Card>
             <Statistic
               title="月均收入(去重)"
-              value={fmtMoney(data.monthly_avg_income_deduped ?? data.monthly_avg_income)}
+              value={fmtMoney(data.deduped_monthly_avg_income)}
               valueStyle={{ color: '#1677ff' }}
             />
           </Card>
@@ -73,8 +72,8 @@ export default function BankSummary({ data }: BankSummaryProps) {
           <Card>
             <Statistic
               title="月均净利润"
-              value={fmtMoney(netProfit)}
-              valueStyle={{ color: netProfit >= 0 ? '#3f8600' : '#cf1322' }}
+              value={fmtMoney(data.monthly_avg_net)}
+              valueStyle={{ color: data.monthly_avg_net >= 0 ? '#3f8600' : '#cf1322' }}
             />
           </Card>
         </Col>
@@ -85,9 +84,9 @@ export default function BankSummary({ data }: BankSummaryProps) {
           <Card title="收支对比">
             <Descriptions column={1} size="small" bordered>
               <Descriptions.Item label="总收入(原始)">{fmtMoney(data.total_income)}</Descriptions.Item>
-              <Descriptions.Item label="总支出">{fmtMoney(data.total_expense)}</Descriptions.Item>
-              <Descriptions.Item label="月均收入(去重)">{fmtMoney(data.monthly_avg_income_deduped ?? data.monthly_avg_income)}</Descriptions.Item>
-              <Descriptions.Item label="月均支出(去重)">{fmtMoney(data.monthly_avg_expense_deduped ?? data.monthly_avg_expense)}</Descriptions.Item>
+              <Descriptions.Item label="总收入(去重)">{fmtMoney(data.deduped_total_income)}</Descriptions.Item>
+              <Descriptions.Item label="总支出(原始)">{fmtMoney(data.total_expense)}</Descriptions.Item>
+              <Descriptions.Item label="总支出(去重)">{fmtMoney(data.deduped_total_expense)}</Descriptions.Item>
               <Descriptions.Item label="最低余额">{fmtMoney(data.min_balance)}</Descriptions.Item>
               <Descriptions.Item label="平均余额">{fmtMoney(data.avg_balance)}</Descriptions.Item>
             </Descriptions>
@@ -100,8 +99,8 @@ export default function BankSummary({ data }: BankSummaryProps) {
               dataSource={incomeSources}
               renderItem={(item) => (
                 <List.Item>
-                  <span>{item.name}</span>
-                  <span style={{ fontWeight: 600 }}>{fmtMoney(item.amount)}</span>
+                  <span>{item.counterparty}</span>
+                  <span style={{ fontWeight: 600 }}>{fmtMoney(item.amount)} ({item.ratio}%)</span>
                 </List.Item>
               )}
             />

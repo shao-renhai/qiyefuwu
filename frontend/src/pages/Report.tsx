@@ -75,9 +75,9 @@ export default function Report({ clientId, onBack }: ReportProps) {
   const creditData = data.credit_reports?.[0]?.parsed_data;
 
   // Merge all bank analyses
-  const allBankAnalyses: BankAnalysis[] = data.bank_statements
-    ?.map((s) => s.analysis)
-    .filter(Boolean) ?? [];
+  const allBankAnalyses: BankAnalysis[] = (data.bank_statements ?? [])
+    .map((s) => s.analysis)
+    .filter((a): a is BankAnalysis => a !== null);
 
   const mergedBank: BankAnalysis | null = allBankAnalyses.length > 0 ? allBankAnalyses[0] : null;
 
@@ -113,7 +113,7 @@ export default function Report({ clientId, onBack }: ReportProps) {
             )}
             {mergedBank && (
               <>
-                <Descriptions.Item label="月均收入(去重)">{fmtMoney(mergedBank.monthly_avg_income_deduped ?? mergedBank.monthly_avg_income)}</Descriptions.Item>
+                <Descriptions.Item label="月均收入(去重)">{fmtMoney(mergedBank.deduped_monthly_avg_income)}</Descriptions.Item>
                 <Descriptions.Item label="月均支出">{fmtMoney(mergedBank.monthly_avg_expense)}</Descriptions.Item>
                 <Descriptions.Item label="异常交易数">{allAnomalies.length} 笔</Descriptions.Item>
               </>

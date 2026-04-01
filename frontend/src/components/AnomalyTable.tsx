@@ -33,8 +33,8 @@ const columns = [
   },
   {
     title: '异常类型',
-    dataIndex: 'anomaly_type',
-    key: 'anomaly_type',
+    dataIndex: 'type',
+    key: 'type',
     width: 110,
     render: (v: string) => {
       const cfg = typeLabels[v] ?? { text: v, color: 'default' };

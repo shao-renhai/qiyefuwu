@@ -26,8 +26,8 @@ export default function UploadBank({ clientId, clientName, onDone, onBack }: Upl
   const handleFile = async (file: File) => {
     setLoading(true);
     try {
-      const result = await uploadBankStatement(clientId, file, bankName.trim() || undefined);
-      setUploaded((prev) => [...prev, { filename: file.name, bankName: result.bank_name }]);
+      const result = await uploadBankStatement(clientId, file, clientName, bankName.trim() || undefined);
+      setUploaded((prev) => [...prev, { filename: file.name, bankName: result.bank_name ?? '' }]);
       setLatestAnalysis(result.analysis);
       message.success(`${file.name} 上传成功`);
     } catch (err: unknown) {
