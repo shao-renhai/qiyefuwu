@@ -1,5 +1,6 @@
 """Credit report upload and parsing routes."""
 
+import logging
 import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -8,10 +9,32 @@ from sqlalchemy.orm import Session
 from db.database import get_db, Client, CreditReport
 from models.schemas import CreditReportResponse
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/credit-report", tags=["credit-report"])
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "credit")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def _empty_credit_data() -> dict:
+    """Return an empty but schema-valid credit data dict."""
+    return {
+        "total_debt": 0.0,
+        "total_balance": 0.0,
+        "institution_details": [],
+        "credit_card_total_limit": 0.0,
+        "credit_card_used": 0.0,
+        "credit_card_usage_rate": 0.0,
+        "active_loans": [],
+        "overdue_records": [],
+        "query_records": {
+            "recent_1m": {"loan_approval": 0, "corporate_review": 0},
+            "recent_3m": {"loan_approval": 0, "corporate_review": 0},
+            "recent_6m": {"loan_approval": 0, "corporate_review": 0},
+            "recent_1y": {"loan_approval": 0, "corporate_review": 0},
+        },
+    }
 
 
 @router.post("/upload", response_model=CreditReportResponse)
@@ -46,13 +69,15 @@ async def upload_credit_report(
 
     # Parse the credit report
     parsed_data = None
+    parse_error = None
     try:
         if file_type == "pdf":
             # Try pdfplumber first
             try:
                 from services.credit_parser import parse_credit_report_pdf
                 parsed_data = parse_credit_report_pdf(saved_path)
-            except (ValueError, Exception):
+            except (ValueError, Exception) as e:
+                logger.info("pdfplumber failed (%s), falling back to OCR", e)
                 # Fallback to OCR for scanned PDFs
                 from services.credit_ocr import parse_credit_report_scanned_pdf
                 parsed_data = parse_credit_report_scanned_pdf(saved_path)
@@ -61,8 +86,9 @@ async def upload_credit_report(
             from services.credit_ocr import parse_credit_report_image
             parsed_data = parse_credit_report_image(saved_path)
     except Exception as e:
-        # Store record even if parsing fails
-        parsed_data = {"error": str(e)}
+        logger.error("Credit report parsing failed: %s", e, exc_info=True)
+        parse_error = str(e)
+        parsed_data = _empty_credit_data()
 
     # Create DB record
     report = CreditReport(
@@ -74,4 +100,8 @@ async def upload_credit_report(
     db.add(report)
     db.commit()
     db.refresh(report)
+
+    if parse_error:
+        logger.warning("Credit report saved but parsing had errors: %s", parse_error)
+
     return report

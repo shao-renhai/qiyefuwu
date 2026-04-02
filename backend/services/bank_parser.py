@@ -103,24 +103,97 @@ def _map_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _parse_pdf_bank_statement(filepath: str) -> List[Dict[str, Any]]:
+    """Parse a bank statement PDF using pdfplumber table extraction."""
+    import pdfplumber
+
+    all_rows = []
+    headers = None
+
+    with pdfplumber.open(filepath) as pdf:
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            for table in tables:
+                if not table:
+                    continue
+                for row in table:
+                    if not row or all(c is None or str(c).strip() == "" for c in row):
+                        continue
+                    # Clean newlines in cells
+                    row = [str(c).replace("\n", " ").strip() if c else "" for c in row]
+                    # Detect header row
+                    row_text = " ".join(row)
+                    if "交易日期" in row_text or "记账日期" in row_text:
+                        headers = row
+                        continue
+                    if headers and len(row) == len(headers):
+                        all_rows.append(dict(zip(headers, row)))
+                    elif headers and len(row) > len(headers):
+                        # Trim extra columns
+                        all_rows.append(dict(zip(headers, row[:len(headers)])))
+
+    if not all_rows:
+        raise ValueError("无法从PDF中提取银行流水表格数据")
+
+    df = pd.DataFrame(all_rows)
+
+    # Map known PDF column names
+    pdf_column_map = {
+        "交易日期": "date",
+        "记账日期": "date",
+        "摘要": "description",
+        "交易金额": "amount",
+        "账户余额": "balance",
+        "对方账号与户名": "counterparty",
+        "对方户名": "counterparty",
+        "交易地点/附言": "memo",
+        "序号": "_seq",
+    }
+    rename = {}
+    for col in df.columns:
+        col_stripped = str(col).strip()
+        if col_stripped in pdf_column_map:
+            rename[col] = pdf_column_map[col_stripped]
+        elif col_stripped in COLUMN_MAP:
+            rename[col] = COLUMN_MAP[col_stripped]
+    df = df.rename(columns=rename)
+
+    # Handle single "amount" column (positive=income, negative=expense)
+    if "amount" in df.columns and "income" not in df.columns:
+        df["amount"] = df["amount"].apply(_clean_amount)
+        df["income"] = df["amount"].apply(lambda x: x if x > 0 else 0.0)
+        df["expense"] = df["amount"].apply(lambda x: abs(x) if x < 0 else 0.0)
+
+    # Extract counterparty name from "对方账号与户名" (format: "account/name")
+    if "counterparty" in df.columns:
+        df["counterparty"] = df["counterparty"].apply(
+            lambda x: str(x).split("/")[-1].strip() if "/" in str(x) else str(x).strip()
+        )
+
+    return df
+
+
 def parse_bank_statement(filepath: str) -> List[Dict[str, Any]]:
     """
-    Parse a bank statement file (Excel or CSV) and return a list of
+    Parse a bank statement file (Excel, CSV, or PDF) and return a list of
     transaction dicts with standardized field names, sorted by date.
 
     Each dict has keys: date, counterparty, description, income, expense, balance
     """
     ext = os.path.splitext(filepath)[1].lower()
 
-    if ext in (".xlsx", ".xls"):
+    if ext == ".pdf":
+        df = _parse_pdf_bank_statement(filepath)
+    elif ext in (".xlsx", ".xls"):
         df = pd.read_excel(filepath)
     elif ext == ".csv":
         df = pd.read_csv(filepath)
     else:
         raise ValueError(f"Unsupported file format: {ext}")
 
-    # Map column names
-    df = _map_columns(df)
+    # Map column names (for Excel/CSV; PDF already mapped)
+    if ext != ".pdf":
+        df = _map_columns(df)
 
     # Ensure all required columns exist
     for field in REQUIRED_FIELDS:

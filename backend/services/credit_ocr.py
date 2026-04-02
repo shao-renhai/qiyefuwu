@@ -5,9 +5,23 @@ Uses Tesseract OCR to extract text from images and scanned PDF files,
 then feeds the extracted text into the credit report parser.
 """
 
+import os
+import shutil
 from typing import Optional
 
 from services.credit_parser import extract_credit_data
+
+# Ensure Homebrew binaries (tesseract, poppler) are discoverable
+_EXTRA_PATHS = ["/opt/homebrew/bin", "/usr/local/bin"]
+for p in _EXTRA_PATHS:
+    if p not in os.environ.get("PATH", "") and os.path.isdir(p):
+        os.environ["PATH"] = p + ":" + os.environ.get("PATH", "")
+
+# Auto-detect tesseract path if not already set
+_tesseract_path = shutil.which("tesseract")
+if _tesseract_path:
+    import pytesseract
+    pytesseract.pytesseract.tesseract_cmd = _tesseract_path
 
 
 def ocr_image(filepath: str) -> str:
@@ -48,7 +62,7 @@ def ocr_pdf(filepath: str) -> str:
     import pytesseract
     from pdf2image import convert_from_path
 
-    images = convert_from_path(filepath, dpi=300)
+    images = convert_from_path(filepath, dpi=200)
     all_text = []
     for image in images:
         page_text = pytesseract.image_to_string(image, lang="chi_sim+eng")

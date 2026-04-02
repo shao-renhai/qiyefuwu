@@ -29,3 +29,10 @@ Thumbs.db
 # Superpowers
 .superpowers/
 .claude/
+
+# Test data files (credit reports, bank statements)
+*.PDF
+*.pdf
+!docs/**/*.pdf
+.vite/
+.pytest_cache/

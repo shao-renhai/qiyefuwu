@@ -48,7 +48,7 @@ export default function UploadCredit({ onDone }: UploadCreditProps) {
 
   return (
     <Card title="第一步：上传征信报告">
-      <Space direction="vertical" style={{ width: '100%' }} size="large">
+      <Space orientation="vertical" style={{ width: '100%' }} size="large">
         <Input
           placeholder="请输入客户名称"
           value={name}

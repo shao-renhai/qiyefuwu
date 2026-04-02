@@ -30,8 +30,8 @@ async def upload_bank_statement(
     # Validate file type
     filename = file.filename or "unknown"
     ext = os.path.splitext(filename)[1].lower()
-    if ext not in (".xlsx", ".xls", ".csv"):
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Only xlsx, xls, csv accepted.")
+    if ext not in (".xlsx", ".xls", ".csv", ".pdf"):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Only xlsx, xls, csv, pdf accepted.")
 
     # Save file
     saved_filename = f"{uuid.uuid4().hex}{ext}"

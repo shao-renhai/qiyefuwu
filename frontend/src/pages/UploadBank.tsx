@@ -40,7 +40,7 @@ export default function UploadBank({ clientId, clientName, onDone, onBack }: Upl
 
   return (
     <Card title={`第二步：上传银行流水 — ${clientName}`}>
-      <Space direction="vertical" style={{ width: '100%' }} size="large">
+      <Space orientation="vertical" style={{ width: '100%' }} size="large">
         <Input
           placeholder="银行名称（可选）"
           value={bankName}
@@ -50,8 +50,8 @@ export default function UploadBank({ clientId, clientName, onDone, onBack }: Upl
 
         <Spin spinning={loading}>
           <FileUploader
-            accept=".xlsx,.xls,.csv"
-            hint="支持 Excel（.xlsx/.xls）和 CSV 格式的银行流水"
+            accept=".xlsx,.xls,.csv,.pdf"
+            hint="支持 Excel（.xlsx/.xls）、CSV 和 PDF 格式的银行流水"
             onFileSelected={handleFile}
             loading={loading}
           />
