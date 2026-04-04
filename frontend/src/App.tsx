@@ -1,23 +1,28 @@
 import { useState, useCallback } from 'react';
-import { ConfigProvider, Layout, Button, Space, Typography, Avatar, Dropdown } from 'antd';
-import { LogoutOutlined, UserOutlined, DashboardOutlined } from '@ant-design/icons';
+import { ConfigProvider, Layout, Menu, Typography, Avatar, Dropdown, Space } from 'antd';
+import {
+  LogoutOutlined,
+  UserOutlined,
+  FileSearchOutlined,
+  BankOutlined,
+  HomeOutlined,
+} from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
 import theme from './theme';
-import StepNav from './components/StepNav';
-import UploadCredit from './pages/UploadCredit';
-import UploadBank from './pages/UploadBank';
-import Report from './pages/Report';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import CreditAnalysis from './pages/CreditAnalysis';
+import BankAnalysis from './pages/BankAnalysis';
 import { isLoggedIn, getStoredUser, logout } from './services/api';
 
-const { Header, Content } = Layout;
+const { Sider, Content } = Layout;
 const { Text } = Typography;
+
+type PageKey = 'dashboard' | 'credit' | 'bank';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(isLoggedIn());
-  const [currentStep, setCurrentStep] = useState(0);
-  const [clientId, setClientId] = useState<number | null>(null);
-  const [clientName, setClientName] = useState('');
+  const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
 
   const handleLoginSuccess = useCallback(() => {
     setLoggedIn(true);
@@ -40,117 +45,166 @@ export default function App() {
 
   return (
     <ConfigProvider locale={zhCN} theme={theme}>
-      <Layout style={{ minHeight: '100vh', background: '#0b1120' }}>
-        {/* ─── Header ─── */}
-        <Header
+      <Layout style={{ minHeight: '100vh', background: '#F5F5F7' }}>
+        {/* ─── Sidebar ─── */}
+        <Sider
+          width={240}
           style={{
-            background: 'rgba(11,17,32,0.85)',
-            backdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 32px',
-            position: 'sticky',
+            background: 'rgba(255,255,255,0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRight: '1px solid rgba(0,0,0,0.06)',
+            position: 'fixed',
+            height: '100vh',
+            left: 0,
             top: 0,
             zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <Space size="middle">
-            <DashboardOutlined style={{ color: '#3b82f6', fontSize: 22 }} />
-            <Text
-              strong
-              style={{ color: '#fff', fontSize: 18, letterSpacing: 2 }}
-            >
-              融资分析系统
-            </Text>
-            <Text
-              style={{
-                color: 'rgba(255,255,255,0.3)',
-                fontSize: 12,
-                marginLeft: 8,
-                borderLeft: '1px solid rgba(255,255,255,0.1)',
-                paddingLeft: 12,
-              }}
-            >
-              FINTECH ANALYTICS
-            </Text>
-          </Space>
-
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'logout',
-                  icon: <LogoutOutlined />,
-                  label: '退出登录',
-                  onClick: handleLogout,
-                },
-              ],
+          {/* Logo */}
+          <div
+            style={{
+              padding: '28px 24px 20px',
+              borderBottom: '1px solid rgba(0,0,0,0.04)',
             }}
           >
-            <Space style={{ cursor: 'pointer' }}>
-              <Avatar
-                size="small"
-                icon={<UserOutlined />}
-                style={{ background: 'rgba(59,130,246,0.3)', color: '#3b82f6' }}
-              />
-              <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
-                {user?.display_name || user?.username || '用户'}
-              </Text>
-            </Space>
-          </Dropdown>
-        </Header>
-
-        {/* ─── Content ─── */}
-        <Content
-          style={{
-            maxWidth: 1280,
-            margin: '0 auto',
-            padding: '28px 24px',
-            width: '100%',
-          }}
-        >
-          <StepNav current={currentStep} />
-
-          {currentStep === 0 && (
-            <UploadCredit
-              onDone={(id, name) => {
-                setClientId(id);
-                setClientName(name);
-                setCurrentStep(1);
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: '#1D1D1F',
+                letterSpacing: '-0.02em',
               }}
-            />
-          )}
+            >
+              云上融
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: '#AEAEB2',
+                letterSpacing: '0.08em',
+                marginTop: 2,
+              }}
+            >
+              智能融资分析平台
+            </div>
+          </div>
 
-          {currentStep === 1 && clientId && (
-            <UploadBank
-              clientId={clientId}
-              clientName={clientName}
-              onDone={() => setCurrentStep(2)}
-              onBack={() => setCurrentStep(0)}
-            />
-          )}
+          {/* Navigation */}
+          <Menu
+            mode="inline"
+            selectedKeys={[currentPage]}
+            onClick={({ key }) => setCurrentPage(key as PageKey)}
+            className="sidebar-menu"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              padding: '12px 0',
+              flex: 1,
+            }}
+            items={[
+              {
+                key: 'dashboard',
+                icon: <HomeOutlined />,
+                label: '工作台',
+              },
+              {
+                key: 'credit',
+                icon: <FileSearchOutlined />,
+                label: '征信分析',
+              },
+              {
+                key: 'bank',
+                icon: <BankOutlined />,
+                label: '流水分析',
+              },
+            ]}
+          />
 
-          {currentStep === 2 && clientId && (
-            <Report
-              clientId={clientId}
-              onBack={() => setCurrentStep(1)}
-            />
-          )}
-        </Content>
+          {/* User info at bottom */}
+          <div
+            style={{
+              padding: '16px 20px',
+              borderTop: '1px solid rgba(0,0,0,0.04)',
+            }}
+          >
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'logout',
+                    icon: <LogoutOutlined />,
+                    label: '退出登录',
+                    onClick: handleLogout,
+                  },
+                ],
+              }}
+              placement="topLeft"
+            >
+              <Space style={{ cursor: 'pointer', width: '100%' }}>
+                <Avatar
+                  size={32}
+                  icon={<UserOutlined />}
+                  style={{
+                    background: 'rgba(0,0,0,0.06)',
+                    color: '#86868B',
+                  }}
+                />
+                <div>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#1D1D1F',
+                      display: 'block',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {user?.display_name || user?.username || '用户'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#AEAEB2' }}>
+                    融资顾问
+                  </Text>
+                </div>
+              </Space>
+            </Dropdown>
+          </div>
+        </Sider>
 
-        {/* ─── Footer ─── */}
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '16px 0 24px',
-            color: 'rgba(255,255,255,0.2)',
-            fontSize: 12,
-          }}
-        >
-          Powered by AI · 科技赋能金融
-        </div>
+        {/* ─── Main Content ─── */}
+        <Layout style={{ marginLeft: 240, background: '#F5F5F7' }}>
+          <Content
+            style={{
+              padding: '28px 32px',
+              maxWidth: 1400,
+              width: '100%',
+            }}
+          >
+            {currentPage === 'dashboard' && (
+              <Dashboard
+                onNavigate={(page: PageKey) => setCurrentPage(page)}
+              />
+            )}
+            {currentPage === 'credit' && <CreditAnalysis />}
+            {currentPage === 'bank' && <BankAnalysis />}
+          </Content>
+
+          {/* Footer */}
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '12px 0 20px',
+              color: '#AEAEB2',
+              fontSize: 11,
+              letterSpacing: '0.05em',
+            }}
+          >
+            云上融 · 科技赋能金融
+          </div>
+        </Layout>
       </Layout>
     </ConfigProvider>
   );

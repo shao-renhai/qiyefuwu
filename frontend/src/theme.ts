@@ -1,82 +1,76 @@
 /**
- * Ant Design dark fintech theme tokens.
- * Color palette inspired by Bloomberg Terminal / digital finance dashboards.
+ * 云上融 — Apple-inspired light fintech theme
+ * Base: #F5F5F7 gray background, white glass cards
+ * Accent: refined blue + semantic colors
  */
 import type { ThemeConfig } from 'antd';
 
 const theme: ThemeConfig = {
   token: {
     // Brand
-    colorPrimary: '#3b82f6',        // vibrant blue
-    colorSuccess: '#22c55e',
-    colorWarning: '#f59e0b',
-    colorError: '#ef4444',
-    colorInfo: '#3b82f6',
+    colorPrimary: '#1D1D1F',
+    colorSuccess: '#34C759',
+    colorWarning: '#FF9F0A',
+    colorError: '#FF3B30',
+    colorInfo: '#007AFF',
 
     // Background
-    colorBgBase: '#0b1120',
-    colorBgContainer: '#111827',
-    colorBgElevated: '#1a2332',
-    colorBgLayout: '#0b1120',
+    colorBgBase: '#F5F5F7',
+    colorBgContainer: 'rgba(255,255,255,0.72)',
+    colorBgElevated: '#FFFFFF',
+    colorBgLayout: '#F5F5F7',
 
     // Text
-    colorText: 'rgba(255,255,255,0.88)',
-    colorTextSecondary: 'rgba(255,255,255,0.55)',
-    colorTextTertiary: 'rgba(255,255,255,0.35)',
+    colorText: '#1D1D1F',
+    colorTextSecondary: '#86868B',
+    colorTextTertiary: '#AEAEB2',
 
     // Border
-    colorBorder: 'rgba(255,255,255,0.08)',
-    colorBorderSecondary: 'rgba(255,255,255,0.05)',
+    colorBorder: 'rgba(0,0,0,0.08)',
+    colorBorderSecondary: 'rgba(0,0,0,0.04)',
 
     // Shape
-    borderRadius: 8,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif',
+    borderRadius: 14,
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif',
     fontSize: 14,
 
     // Misc
-    controlHeight: 40,
+    controlHeight: 42,
     wireframe: false,
   },
   components: {
     Card: {
-      colorBgContainer: '#111827',
-      colorBorderSecondary: 'rgba(255,255,255,0.06)',
+      borderRadiusLG: 20,
     },
     Table: {
-      colorBgContainer: '#111827',
-      headerBg: '#1a2332',
-      headerColor: 'rgba(255,255,255,0.65)',
-      rowHoverBg: 'rgba(59,130,246,0.08)',
-      borderColor: 'rgba(255,255,255,0.06)',
+      headerBg: 'rgba(0,0,0,0.02)',
+      headerColor: '#86868B',
+      rowHoverBg: 'rgba(0,0,0,0.02)',
+      borderColor: 'rgba(0,0,0,0.06)',
     },
     Input: {
-      colorBgContainer: '#1a2332',
-      activeBorderColor: '#3b82f6',
+      activeBorderColor: '#1D1D1F',
     },
     Tabs: {
-      itemColor: 'rgba(255,255,255,0.55)',
-      itemSelectedColor: '#3b82f6',
-      inkBarColor: '#3b82f6',
-    },
-    Steps: {
-      colorPrimary: '#3b82f6',
+      itemColor: '#86868B',
+      itemSelectedColor: '#1D1D1F',
+      inkBarColor: '#1D1D1F',
     },
     Button: {
-      primaryShadow: '0 2px 8px rgba(59,130,246,0.35)',
+      primaryShadow: '0 2px 8px rgba(0,0,0,0.12)',
     },
-    Upload: {
-      colorBgContainer: '#1a2332',
+    Menu: {
+      itemBg: 'transparent',
+      itemSelectedBg: 'rgba(0,0,0,0.04)',
+      itemSelectedColor: '#1D1D1F',
+      itemColor: '#86868B',
+      itemHoverColor: '#1D1D1F',
+      itemHoverBg: 'rgba(0,0,0,0.03)',
     },
     Statistic: {
-      titleColor: 'rgba(255,255,255,0.55)',
-      contentColor: 'rgba(255,255,255,0.88)',
-    },
-    Descriptions: {
-      colorBgContainer: '#111827',
-      labelBg: '#1a2332',
-    },
-    Tag: {
-      defaultBg: 'rgba(59,130,246,0.12)',
+      titleColor: '#86868B',
+      contentColor: '#1D1D1F',
     },
   },
 };
