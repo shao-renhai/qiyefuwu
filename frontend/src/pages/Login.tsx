@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Card, Form, Input, Button, Typography, Space, message, Tabs } from 'antd';
-import { UserOutlined, LockOutlined, IdcardOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Typography, message, Tabs } from 'antd';
+import { UserOutlined, LockOutlined, IdcardOutlined, DashboardOutlined } from '@ant-design/icons';
 import { login, register } from '../services/api';
 
 const { Title, Text } = Typography;
@@ -50,6 +50,12 @@ export default function Login({ onSuccess }: LoginProps) {
     }
   };
 
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#fff',
+  };
+
   return (
     <div
       style={{
@@ -57,30 +63,59 @@ export default function Login({ onSuccess }: LoginProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2137 100%)',
+        background: 'radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(34,197,94,0.08) 0%, transparent 50%), #0b1120',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <Card
+      {/* Decorative grid lines */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div
         style={{
           width: 420,
-          borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          background: 'rgba(255,255,255,0.95)',
+          padding: '48px 36px 36px',
+          background: 'rgba(17,24,39,0.75)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
-        <Space direction="vertical" size="middle" style={{ width: '100%', textAlign: 'center' }}>
-          <Title level={3} style={{ margin: 0, color: '#1a3a5c' }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <DashboardOutlined
+            style={{
+              fontSize: 42,
+              color: '#3b82f6',
+              display: 'block',
+              marginBottom: 16,
+              filter: 'drop-shadow(0 0 12px rgba(59,130,246,0.4))',
+            }}
+          />
+          <Title level={3} style={{ color: '#fff', margin: 0, letterSpacing: 3 }}>
             融资分析系统
           </Title>
-          <Text type="secondary">科技赋能金融 · 数据驱动决策</Text>
-        </Space>
+          <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, letterSpacing: 4 }}>
+            FINTECH ANALYTICS PLATFORM
+          </Text>
+        </div>
 
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           centered
-          style={{ marginTop: 16 }}
           items={[
             {
               key: 'login',
@@ -91,24 +126,35 @@ export default function Login({ onSuccess }: LoginProps) {
                     name="username"
                     rules={[{ required: true, message: '请输入用户名' }]}
                   >
-                    <Input prefix={<UserOutlined />} placeholder="用户名" />
+                    <Input
+                      prefix={<UserOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                      placeholder="用户名"
+                      style={inputStyle}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="password"
                     rules={[{ required: true, message: '请输入密码' }]}
                   >
-                    <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+                    <Input.Password
+                      prefix={<LockOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                      placeholder="密码"
+                      style={inputStyle}
+                    />
                   </Form.Item>
-                  <Form.Item>
+                  <Form.Item style={{ marginBottom: 0 }}>
                     <Button
                       type="primary"
                       htmlType="submit"
                       block
                       loading={loading}
                       style={{
-                        height: 44,
-                        borderRadius: 8,
-                        background: '#1a3a5c',
+                        height: 46,
+                        borderRadius: 10,
+                        fontWeight: 600,
+                        fontSize: 15,
+                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                        boxShadow: '0 4px 16px rgba(59,130,246,0.35)',
                       }}
                     >
                       登录
@@ -129,10 +175,18 @@ export default function Login({ onSuccess }: LoginProps) {
                       { min: 3, message: '用户名至少3个字符' },
                     ]}
                   >
-                    <Input prefix={<UserOutlined />} placeholder="用户名" />
+                    <Input
+                      prefix={<UserOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                      placeholder="用户名"
+                      style={inputStyle}
+                    />
                   </Form.Item>
                   <Form.Item name="displayName">
-                    <Input prefix={<IdcardOutlined />} placeholder="姓名（选填）" />
+                    <Input
+                      prefix={<IdcardOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                      placeholder="姓名（选填）"
+                      style={inputStyle}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="password"
@@ -141,24 +195,35 @@ export default function Login({ onSuccess }: LoginProps) {
                       { min: 6, message: '密码至少6个字符' },
                     ]}
                   >
-                    <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+                    <Input.Password
+                      prefix={<LockOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                      placeholder="密码"
+                      style={inputStyle}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="confirm"
                     rules={[{ required: true, message: '请再次输入密码' }]}
                   >
-                    <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
+                    <Input.Password
+                      prefix={<LockOutlined style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                      placeholder="确认密码"
+                      style={inputStyle}
+                    />
                   </Form.Item>
-                  <Form.Item>
+                  <Form.Item style={{ marginBottom: 0 }}>
                     <Button
                       type="primary"
                       htmlType="submit"
                       block
                       loading={loading}
                       style={{
-                        height: 44,
-                        borderRadius: 8,
-                        background: '#1a3a5c',
+                        height: 46,
+                        borderRadius: 10,
+                        fontWeight: 600,
+                        fontSize: 15,
+                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                        boxShadow: '0 4px 16px rgba(59,130,246,0.35)',
                       }}
                     >
                       注册
@@ -169,7 +234,7 @@ export default function Login({ onSuccess }: LoginProps) {
             },
           ]}
         />
-      </Card>
+      </div>
     </div>
   );
 }

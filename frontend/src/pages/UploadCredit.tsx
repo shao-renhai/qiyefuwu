@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, Card, Input, message, Space, Spin } from 'antd';
+import { Button, Input, message, Space, Spin } from 'antd';
+import { ArrowRightOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import FileUploader from '../components/FileUploader';
 import CreditSummary from '../components/CreditSummary';
@@ -21,10 +22,8 @@ export default function UploadCredit({ onDone }: UploadCreditProps) {
       message.warning('请先输入客户名称');
       return;
     }
-
     setLoading(true);
     setFileList([{ uid: '-1', name: file.name, status: 'uploading' }]);
-
     try {
       let cid = clientId;
       if (!cid) {
@@ -32,11 +31,10 @@ export default function UploadCredit({ onDone }: UploadCreditProps) {
         cid = client.id;
         setClientId(cid);
       }
-
       const report = await uploadCreditReport(cid, file);
       setFileList([{ uid: '-1', name: file.name, status: 'done' }]);
       setPreview(report.parsed_data);
-      message.success('征信报告上传成功');
+      message.success('征信报告解析完成');
     } catch (err: unknown) {
       setFileList([{ uid: '-1', name: file.name, status: 'error' }]);
       const msg = err instanceof Error ? err.message : '上传失败';
@@ -47,36 +45,48 @@ export default function UploadCredit({ onDone }: UploadCreditProps) {
   };
 
   return (
-    <Card title="第一步：上传征信报告">
-      <Space orientation="vertical" style={{ width: '100%' }} size="large">
+    <div>
+      <div className="glass-card" style={{ padding: 28, marginBottom: 20 }}>
+        <Space size="middle" style={{ marginBottom: 20 }}>
+          <SafetyCertificateOutlined style={{ fontSize: 20, color: '#3b82f6' }} />
+          <span style={{ fontSize: 16, fontWeight: 500 }}>上传征信报告</span>
+        </Space>
+
         <Input
           placeholder="请输入客户名称"
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={!!clientId}
-          style={{ maxWidth: 400 }}
+          style={{ maxWidth: 400, marginBottom: 20 }}
         />
 
-        <Spin spinning={loading}>
+        <Spin spinning={loading} tip="正在解析征信报告，扫描件可能需要2-3分钟...">
           <FileUploader
             accept=".pdf,.jpg,.jpeg,.png"
-            hint="支持 PDF、JPG、PNG 格式的征信报告"
+            hint="支持 PDF（电子版/扫描件）、JPG、PNG 格式"
             onFileSelected={handleFile}
             fileList={fileList}
             loading={loading}
           />
         </Spin>
+      </div>
 
-        {preview && <CreditSummary data={preview} />}
+      {preview && (
+        <div style={{ marginBottom: 20 }}>
+          <CreditSummary data={preview} />
+        </div>
+      )}
 
-        <Button
-          type="primary"
-          disabled={!clientId}
-          onClick={() => onDone(clientId!, name)}
-        >
-          下一步：上传银行流水 &rarr;
-        </Button>
-      </Space>
-    </Card>
+      <Button
+        type="primary"
+        size="large"
+        disabled={!clientId}
+        onClick={() => onDone(clientId!, name)}
+        icon={<ArrowRightOutlined />}
+        style={{ borderRadius: 10 }}
+      >
+        下一步：上传银行流水
+      </Button>
+    </div>
   );
 }

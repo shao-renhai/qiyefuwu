@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { ConfigProvider, Layout, Button, Space, Typography } from 'antd';
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { ConfigProvider, Layout, Button, Space, Typography, Avatar, Dropdown } from 'antd';
+import { LogoutOutlined, UserOutlined, DashboardOutlined } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
+import theme from './theme';
 import StepNav from './components/StepNav';
 import UploadCredit from './pages/UploadCredit';
 import UploadBank from './pages/UploadBank';
@@ -29,7 +30,7 @@ export default function App() {
 
   if (!loggedIn) {
     return (
-      <ConfigProvider locale={zhCN}>
+      <ConfigProvider locale={zhCN} theme={theme}>
         <Login onSuccess={handleLoginSuccess} />
       </ConfigProvider>
     );
@@ -38,45 +39,75 @@ export default function App() {
   const user = getStoredUser();
 
   return (
-    <ConfigProvider locale={zhCN}>
-      <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+    <ConfigProvider locale={zhCN} theme={theme}>
+      <Layout style={{ minHeight: '100vh', background: '#0b1120' }}>
+        {/* ─── Header ─── */}
         <Header
           style={{
-            background: 'linear-gradient(90deg, #0a1628, #1a3a5c)',
+            background: 'rgba(11,17,32,0.85)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 32px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
           }}
         >
-          <Text
-            strong
-            style={{ color: '#fff', fontSize: 18, letterSpacing: 1 }}
-          >
-            融资分析系统
-          </Text>
-          <Space>
-            <UserOutlined style={{ color: 'rgba(255,255,255,0.85)' }} />
-            <Text style={{ color: 'rgba(255,255,255,0.85)' }}>
-              {user?.display_name || user?.username || '用户'}
-            </Text>
-            <Button
-              type="text"
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
-              style={{ color: 'rgba(255,255,255,0.65)' }}
+          <Space size="middle">
+            <DashboardOutlined style={{ color: '#3b82f6', fontSize: 22 }} />
+            <Text
+              strong
+              style={{ color: '#fff', fontSize: 18, letterSpacing: 2 }}
             >
-              退出
-            </Button>
+              融资分析系统
+            </Text>
+            <Text
+              style={{
+                color: 'rgba(255,255,255,0.3)',
+                fontSize: 12,
+                marginLeft: 8,
+                borderLeft: '1px solid rgba(255,255,255,0.1)',
+                paddingLeft: 12,
+              }}
+            >
+              FINTECH ANALYTICS
+            </Text>
           </Space>
+
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'logout',
+                  icon: <LogoutOutlined />,
+                  label: '退出登录',
+                  onClick: handleLogout,
+                },
+              ],
+            }}
+          >
+            <Space style={{ cursor: 'pointer' }}>
+              <Avatar
+                size="small"
+                icon={<UserOutlined />}
+                style={{ background: 'rgba(59,130,246,0.3)', color: '#3b82f6' }}
+              />
+              <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
+                {user?.display_name || user?.username || '用户'}
+              </Text>
+            </Space>
+          </Dropdown>
         </Header>
 
+        {/* ─── Content ─── */}
         <Content
           style={{
-            maxWidth: 1200,
-            margin: '24px auto',
-            padding: '0 24px',
+            maxWidth: 1280,
+            margin: '0 auto',
+            padding: '28px 24px',
             width: '100%',
           }}
         >
@@ -108,6 +139,18 @@ export default function App() {
             />
           )}
         </Content>
+
+        {/* ─── Footer ─── */}
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '16px 0 24px',
+            color: 'rgba(255,255,255,0.2)',
+            fontSize: 12,
+          }}
+        >
+          Powered by AI · 科技赋能金融
+        </div>
       </Layout>
     </ConfigProvider>
   );
