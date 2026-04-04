@@ -13,9 +13,8 @@ import FileUploader from '../components/FileUploader';
 import {
   createClient,
   uploadBankStatement,
-  BankAnalysis as BankAnalysisData,
-  AnomalyItem,
 } from '../services/api';
+import type { BankAnalysis as BankAnalysisData, AnomalyItem } from '../services/api';
 
 echarts.use([BarChart, LineChart, CanvasRenderer, TooltipComponent, GridComponent, LegendComponent]);
 

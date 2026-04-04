@@ -10,8 +10,8 @@ import FileUploader from '../components/FileUploader';
 import {
   createClient,
   uploadCreditReport,
-  CreditReportData,
 } from '../services/api';
+import type { CreditReportData } from '../services/api';
 
 echarts.use([GaugeChart, RadarChart, BarChart, CanvasRenderer, TooltipComponent, GridComponent, RadarComponent]);
 
