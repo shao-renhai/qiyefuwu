@@ -5,6 +5,94 @@ const http = axios.create({
   timeout: 60000,
 });
 
+// Auto-attach JWT token to all requests
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Auto-redirect to login on 401
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  },
+);
+
+/* ─── Auth Types ─── */
+
+export interface AuthUser {
+  user_id: number;
+  username: string;
+  display_name: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user_id: number;
+  username: string;
+  display_name: string;
+}
+
+/* ─── Auth Functions ─── */
+
+export async function register(
+  username: string,
+  password: string,
+  displayName: string,
+): Promise<TokenResponse> {
+  const { data } = await http.post<TokenResponse>('/auth/register', {
+    username,
+    password,
+    display_name: displayName,
+  });
+  localStorage.setItem('token', data.access_token);
+  localStorage.setItem('user', JSON.stringify(data));
+  return data;
+}
+
+export async function login(
+  username: string,
+  password: string,
+): Promise<TokenResponse> {
+  const { data } = await http.post<TokenResponse>('/auth/login', {
+    username,
+    password,
+  });
+  localStorage.setItem('token', data.access_token);
+  localStorage.setItem('user', JSON.stringify(data));
+  return data;
+}
+
+export function logout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.reload();
+}
+
+export function getStoredUser(): AuthUser | null {
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function isLoggedIn(): boolean {
+  return !!localStorage.getItem('token');
+}
+
 /* ─── Types ─── */
 
 export interface Client {

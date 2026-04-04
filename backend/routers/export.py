@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from db.database import get_db, Client
+from db.database import get_db, Client, User
 from services.exporter import export_excel, export_pdf
+from services.auth import get_current_user
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -39,8 +40,8 @@ def _build_export_data(client: "Client") -> dict:
 
 
 @router.get("/{client_id}/excel")
-def export_excel_report(client_id: int, db: Session = Depends(get_db)):
-    client = db.query(Client).filter(Client.id == client_id).first()
+def export_excel_report(client_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    client = db.query(Client).filter(Client.id == client_id, Client.user_id == current_user.id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 
@@ -61,8 +62,8 @@ def export_excel_report(client_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{client_id}/pdf")
-def export_pdf_report(client_id: int, db: Session = Depends(get_db)):
-    client = db.query(Client).filter(Client.id == client_id).first()
+def export_pdf_report(client_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    client = db.query(Client).filter(Client.id == client_id, Client.user_id == current_user.id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 

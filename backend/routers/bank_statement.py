@@ -5,8 +5,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
-from db.database import get_db, Client, BankStatement
+from db.database import get_db, Client, BankStatement, User
 from models.schemas import BankStatementResponse
+from services.auth import get_current_user
 
 router = APIRouter(prefix="/api/bank-statement", tags=["bank-statement"])
 
@@ -21,9 +22,10 @@ async def upload_bank_statement(
     account_holder: str = Form(...),
     bank_name: str = Form(None),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    # Verify client exists
-    client = db.query(Client).filter(Client.id == client_id).first()
+    # Verify client exists and belongs to current user
+    client = db.query(Client).filter(Client.id == client_id, Client.user_id == current_user.id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 

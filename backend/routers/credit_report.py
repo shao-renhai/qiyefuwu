@@ -6,8 +6,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
-from db.database import get_db, Client, CreditReport
+from db.database import get_db, Client, CreditReport, User
 from models.schemas import CreditReportResponse
+from services.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +43,10 @@ async def upload_credit_report(
     file: UploadFile = File(...),
     client_id: int = Form(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    # Verify client exists
-    client = db.query(Client).filter(Client.id == client_id).first()
+    # Verify client exists and belongs to current user
+    client = db.query(Client).filter(Client.id == client_id, Client.user_id == current_user.id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 
