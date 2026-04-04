@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const http = axios.create({
   baseURL: '/api',
-  timeout: 60000,
+  timeout: 300000, // 5 minutes — OCR processing can take a while
 });
 
 // Auto-attach JWT token to all requests
