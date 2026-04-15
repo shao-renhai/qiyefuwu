@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Button, Col, Row, message, Space, Spin, Tabs } from 'antd';
 import {
   ArrowLeftOutlined,
-  DownloadOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
 } from '@ant-design/icons';

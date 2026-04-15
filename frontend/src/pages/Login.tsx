@@ -50,6 +50,13 @@ export default function Login({ onSuccess }: LoginProps) {
     }
   };
 
+  const inputStyle = {
+    borderRadius: 12,
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: '#F0F0F5',
+  };
+
   return (
     <div
       style={{
@@ -57,7 +64,7 @@ export default function Login({ onSuccess }: LoginProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#F5F5F7',
+        background: '#0A0E1A',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -68,7 +75,7 @@ export default function Login({ onSuccess }: LoginProps) {
           position: 'absolute',
           inset: 0,
           backgroundImage:
-            'linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)',
+            'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
           backgroundSize: '80px 80px',
           pointerEvents: 'none',
         }}
@@ -78,48 +85,49 @@ export default function Login({ onSuccess }: LoginProps) {
       <div
         style={{
           position: 'absolute',
-          width: 600,
-          height: 600,
+          width: 700,
+          height: 700,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0,122,255,0.06) 0%, transparent 70%)',
-          top: '-20%',
-          right: '-10%',
+          background: 'radial-gradient(circle, rgba(201,169,98,0.08) 0%, transparent 70%)',
+          top: '-25%',
+          right: '-15%',
           pointerEvents: 'none',
         }}
       />
       <div
         style={{
           position: 'absolute',
-          width: 400,
-          height: 400,
+          width: 500,
+          height: 500,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(52,199,89,0.05) 0%, transparent 70%)',
-          bottom: '-10%',
-          left: '-5%',
+          background: 'radial-gradient(circle, rgba(76,154,255,0.05) 0%, transparent 70%)',
+          bottom: '-15%',
+          left: '-8%',
           pointerEvents: 'none',
         }}
       />
 
       <div style={{ display: 'flex', gap: 80, alignItems: 'center', position: 'relative', zIndex: 1 }}>
-        {/* Left: Brand card */}
+        {/* Left: Brand card — dark luxury */}
         <div
           style={{
             width: 380,
             height: 240,
             borderRadius: 24,
-            background: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)',
+            background: 'linear-gradient(135deg, #111827 0%, #0A0E1A 100%)',
             boxShadow:
-              '0 30px 60px rgba(0,0,0,0.08), 0 10px 20px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)',
+              '0 30px 60px rgba(0,0,0,0.5), 0 0 60px rgba(201,169,98,0.06), inset 0 1px 0 rgba(255,255,255,0.05)',
             padding: '36px 32px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             position: 'relative',
             overflow: 'hidden',
+            border: '1px solid rgba(201,169,98,0.15)',
             animation: 'float 8s ease-in-out infinite',
           }}
         >
-          {/* Shine effect */}
+          {/* Gold shimmer line */}
           <div
             style={{
               position: 'absolute',
@@ -127,9 +135,10 @@ export default function Login({ onSuccess }: LoginProps) {
               left: 0,
               right: 0,
               height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+              background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.5), transparent)',
             }}
           />
+          {/* Light sweep effect */}
           <div
             style={{
               position: 'absolute',
@@ -137,7 +146,7 @@ export default function Login({ onSuccess }: LoginProps) {
               right: 0,
               width: '60%',
               height: '100%',
-              background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)',
+              background: 'linear-gradient(115deg, transparent 30%, rgba(201,169,98,0.04) 50%, transparent 70%)',
               pointerEvents: 'none',
             }}
           />
@@ -147,8 +156,10 @@ export default function Login({ onSuccess }: LoginProps) {
               style={{
                 fontSize: 28,
                 fontWeight: 700,
-                color: '#1D1D1F',
                 letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg, #C9A962, #E8D5A3)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
               }}
             >
               云上融
@@ -157,7 +168,7 @@ export default function Login({ onSuccess }: LoginProps) {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#86868B',
+                color: '#555B6E',
                 letterSpacing: '0.15em',
                 marginTop: 4,
                 textTransform: 'uppercase',
@@ -173,7 +184,7 @@ export default function Login({ onSuccess }: LoginProps) {
                 style={{
                   fontSize: 9,
                   fontWeight: 600,
-                  color: '#AEAEB2',
+                  color: '#555B6E',
                   letterSpacing: '0.15em',
                   textTransform: 'uppercase',
                   marginBottom: 4,
@@ -183,10 +194,9 @@ export default function Login({ onSuccess }: LoginProps) {
               </div>
               <div
                 style={{
-                  fontFamily: "'SF Mono', 'Courier New', monospace",
                   fontSize: 18,
                   fontWeight: 600,
-                  color: '#1D1D1F',
+                  color: '#8B8FA3',
                   letterSpacing: '3px',
                 }}
               >
@@ -194,14 +204,14 @@ export default function Login({ onSuccess }: LoginProps) {
               </div>
             </div>
 
-            {/* Chip */}
+            {/* Chip — gold accent */}
             <div
               style={{
                 width: 46,
                 height: 34,
                 borderRadius: 7,
-                background: 'linear-gradient(135deg, #d0d0d0 0%, #e8e8e8 50%, #c0c0c0 100%)',
-                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.08)',
+                background: 'linear-gradient(135deg, #C9A962 0%, #E8D5A3 50%, #C9A962 100%)',
+                boxShadow: '0 0 15px rgba(201,169,98,0.2), inset 0 1px 2px rgba(255,255,255,0.3)',
               }}
             />
           </div>
@@ -212,12 +222,12 @@ export default function Login({ onSuccess }: LoginProps) {
           style={{
             width: 400,
             padding: '40px 36px',
-            background: 'rgba(255,255,255,0.65)',
+            background: 'rgba(17,24,39,0.80)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
             borderRadius: 24,
-            border: '1px solid rgba(255,255,255,0.8)',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
           }}
         >
           {/* Logo text */}
@@ -225,7 +235,7 @@ export default function Login({ onSuccess }: LoginProps) {
             <Title
               level={3}
               style={{
-                color: '#1D1D1F',
+                color: '#F0F0F5',
                 margin: 0,
                 fontWeight: 700,
                 letterSpacing: '-0.02em',
@@ -233,7 +243,7 @@ export default function Login({ onSuccess }: LoginProps) {
             >
               欢迎回来
             </Title>
-            <Text style={{ color: '#86868B', fontSize: 14 }}>
+            <Text style={{ color: '#8B8FA3', fontSize: 14 }}>
               登录云上融 · 开启智能融资分析
             </Text>
           </div>
@@ -253,13 +263,9 @@ export default function Login({ onSuccess }: LoginProps) {
                       rules={[{ required: true, message: '请输入用户名' }]}
                     >
                       <Input
-                        prefix={<UserOutlined style={{ color: '#AEAEB2' }} />}
+                        prefix={<UserOutlined style={{ color: '#555B6E' }} />}
                         placeholder="用户名"
-                        style={{
-                          borderRadius: 12,
-                          background: 'rgba(0,0,0,0.03)',
-                          border: '1px solid rgba(0,0,0,0.06)',
-                        }}
+                        style={inputStyle}
                       />
                     </Form.Item>
                     <Form.Item
@@ -267,13 +273,9 @@ export default function Login({ onSuccess }: LoginProps) {
                       rules={[{ required: true, message: '请输入密码' }]}
                     >
                       <Input.Password
-                        prefix={<LockOutlined style={{ color: '#AEAEB2' }} />}
+                        prefix={<LockOutlined style={{ color: '#555B6E' }} />}
                         placeholder="密码"
-                        style={{
-                          borderRadius: 12,
-                          background: 'rgba(0,0,0,0.03)',
-                          border: '1px solid rgba(0,0,0,0.06)',
-                        }}
+                        style={inputStyle}
                       />
                     </Form.Item>
                     <Form.Item style={{ marginBottom: 0 }}>
@@ -287,8 +289,10 @@ export default function Login({ onSuccess }: LoginProps) {
                           borderRadius: 14,
                           fontWeight: 600,
                           fontSize: 15,
-                          background: '#1D1D1F',
+                          background: 'linear-gradient(135deg, #C9A962, #E8D5A3)',
                           border: 'none',
+                          color: '#0A0E1A',
+                          boxShadow: '0 4px 20px rgba(201,169,98,0.3)',
                         }}
                       >
                         登录
@@ -310,24 +314,16 @@ export default function Login({ onSuccess }: LoginProps) {
                       ]}
                     >
                       <Input
-                        prefix={<UserOutlined style={{ color: '#AEAEB2' }} />}
+                        prefix={<UserOutlined style={{ color: '#555B6E' }} />}
                         placeholder="用户名"
-                        style={{
-                          borderRadius: 12,
-                          background: 'rgba(0,0,0,0.03)',
-                          border: '1px solid rgba(0,0,0,0.06)',
-                        }}
+                        style={inputStyle}
                       />
                     </Form.Item>
                     <Form.Item name="displayName">
                       <Input
-                        prefix={<IdcardOutlined style={{ color: '#AEAEB2' }} />}
+                        prefix={<IdcardOutlined style={{ color: '#555B6E' }} />}
                         placeholder="姓名（选填）"
-                        style={{
-                          borderRadius: 12,
-                          background: 'rgba(0,0,0,0.03)',
-                          border: '1px solid rgba(0,0,0,0.06)',
-                        }}
+                        style={inputStyle}
                       />
                     </Form.Item>
                     <Form.Item
@@ -338,13 +334,9 @@ export default function Login({ onSuccess }: LoginProps) {
                       ]}
                     >
                       <Input.Password
-                        prefix={<LockOutlined style={{ color: '#AEAEB2' }} />}
+                        prefix={<LockOutlined style={{ color: '#555B6E' }} />}
                         placeholder="密码"
-                        style={{
-                          borderRadius: 12,
-                          background: 'rgba(0,0,0,0.03)',
-                          border: '1px solid rgba(0,0,0,0.06)',
-                        }}
+                        style={inputStyle}
                       />
                     </Form.Item>
                     <Form.Item
@@ -352,13 +344,9 @@ export default function Login({ onSuccess }: LoginProps) {
                       rules={[{ required: true, message: '请再次输入密码' }]}
                     >
                       <Input.Password
-                        prefix={<LockOutlined style={{ color: '#AEAEB2' }} />}
+                        prefix={<LockOutlined style={{ color: '#555B6E' }} />}
                         placeholder="确认密码"
-                        style={{
-                          borderRadius: 12,
-                          background: 'rgba(0,0,0,0.03)',
-                          border: '1px solid rgba(0,0,0,0.06)',
-                        }}
+                        style={inputStyle}
                       />
                     </Form.Item>
                     <Form.Item style={{ marginBottom: 0 }}>
@@ -372,8 +360,10 @@ export default function Login({ onSuccess }: LoginProps) {
                           borderRadius: 14,
                           fontWeight: 600,
                           fontSize: 15,
-                          background: '#1D1D1F',
+                          background: 'linear-gradient(135deg, #C9A962, #E8D5A3)',
                           border: 'none',
+                          color: '#0A0E1A',
+                          boxShadow: '0 4px 20px rgba(201,169,98,0.3)',
                         }}
                       >
                         注册

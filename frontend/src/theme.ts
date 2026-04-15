@@ -1,29 +1,29 @@
 /**
- * 云上融 — Apple-inspired light fintech theme
- * Base: #F5F5F7 gray background, white glass cards
- * Accent: refined blue + semantic colors
+ * 云上融 — Dark sidebar + Light content theme
+ * Sidebar: deep navy-black with gold accents
+ * Content: warm light background with professional dark text
  */
 import type { ThemeConfig } from 'antd';
 
 const theme: ThemeConfig = {
   token: {
-    // Brand
-    colorPrimary: '#1D1D1F',
-    colorSuccess: '#34C759',
-    colorWarning: '#FF9F0A',
-    colorError: '#FF3B30',
-    colorInfo: '#007AFF',
+    // Brand — matte gold
+    colorPrimary: '#C9A962',
+    colorSuccess: '#36B37E',
+    colorWarning: '#FFAB00',
+    colorError: '#FF5630',
+    colorInfo: '#4C9AFF',
 
-    // Background
-    colorBgBase: '#F5F5F7',
-    colorBgContainer: 'rgba(255,255,255,0.72)',
+    // Background — light warm gray
+    colorBgBase: '#F0F1F5',
+    colorBgContainer: 'rgba(255,255,255,0.92)',
     colorBgElevated: '#FFFFFF',
-    colorBgLayout: '#F5F5F7',
+    colorBgLayout: '#F0F1F5',
 
-    // Text
-    colorText: '#1D1D1F',
-    colorTextSecondary: '#86868B',
-    colorTextTertiary: '#AEAEB2',
+    // Text — dark professional
+    colorText: '#1A1A2E',
+    colorTextSecondary: '#6B7280',
+    colorTextTertiary: '#9CA3AF',
 
     // Border
     colorBorder: 'rgba(0,0,0,0.08)',
@@ -45,32 +45,42 @@ const theme: ThemeConfig = {
     },
     Table: {
       headerBg: 'rgba(0,0,0,0.02)',
-      headerColor: '#86868B',
-      rowHoverBg: 'rgba(0,0,0,0.02)',
+      headerColor: '#6B7280',
+      rowHoverBg: 'rgba(201,169,98,0.04)',
       borderColor: 'rgba(0,0,0,0.06)',
     },
     Input: {
-      activeBorderColor: '#1D1D1F',
+      activeBorderColor: '#C9A962',
+      hoverBorderColor: 'rgba(201,169,98,0.4)',
     },
     Tabs: {
-      itemColor: '#86868B',
-      itemSelectedColor: '#1D1D1F',
-      inkBarColor: '#1D1D1F',
+      itemColor: '#6B7280',
+      itemSelectedColor: '#C9A962',
+      inkBarColor: '#C9A962',
     },
     Button: {
-      primaryShadow: '0 2px 8px rgba(0,0,0,0.12)',
+      primaryShadow: '0 2px 12px rgba(201,169,98,0.25)',
     },
     Menu: {
       itemBg: 'transparent',
-      itemSelectedBg: 'rgba(0,0,0,0.04)',
-      itemSelectedColor: '#1D1D1F',
-      itemColor: '#86868B',
-      itemHoverColor: '#1D1D1F',
-      itemHoverBg: 'rgba(0,0,0,0.03)',
+      itemSelectedBg: 'rgba(201,169,98,0.10)',
+      itemSelectedColor: '#C9A962',
+      itemColor: '#8B8FA3',
+      itemHoverColor: '#F0F0F5',
+      itemHoverBg: 'rgba(255,255,255,0.04)',
     },
     Statistic: {
-      titleColor: '#86868B',
-      contentColor: '#1D1D1F',
+      colorTextDescription: '#6B7280',
+    },
+    Select: {
+      optionSelectedBg: 'rgba(201,169,98,0.08)',
+    },
+    Steps: {
+      colorPrimary: '#C9A962',
+    },
+    Segmented: {
+      itemSelectedBg: '#FFFFFF',
+      itemSelectedColor: '#C9A962',
     },
   },
 };

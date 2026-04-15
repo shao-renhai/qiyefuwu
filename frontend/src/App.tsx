@@ -6,26 +6,33 @@ import {
   FileSearchOutlined,
   BankOutlined,
   HomeOutlined,
+  CalculatorOutlined,
+  MedicineBoxOutlined,
 } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
 import theme from './theme';
-import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
+import LoginModal from './components/LoginModal';
 import Dashboard from './pages/Dashboard';
 import CreditAnalysis from './pages/CreditAnalysis';
 import BankAnalysis from './pages/BankAnalysis';
+import LoanCalculator from './pages/LoanCalculator';
+import DiagnosticWizard from './components/diagnostic/DiagnosticWizard';
 import { isLoggedIn, getStoredUser, logout } from './services/api';
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
 
-type PageKey = 'dashboard' | 'credit' | 'bank';
+type PageKey = 'dashboard' | 'credit' | 'bank' | 'calculator' | 'diagnostic';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(isLoggedIn());
   const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const handleLoginSuccess = useCallback(() => {
     setLoggedIn(true);
+    setLoginModalOpen(false);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -33,27 +40,32 @@ export default function App() {
     setLoggedIn(false);
   }, []);
 
+  // ─── 未登录：着陆页 + 登录弹窗 ───
   if (!loggedIn) {
     return (
       <ConfigProvider locale={zhCN} theme={theme}>
-        <Login onSuccess={handleLoginSuccess} />
+        <LandingPage onOpenLogin={() => setLoginModalOpen(true)} />
+        <LoginModal
+          open={loginModalOpen}
+          onClose={() => setLoginModalOpen(false)}
+          onSuccess={handleLoginSuccess}
+        />
       </ConfigProvider>
     );
   }
 
+  // ─── 已登录：后台工作台 ───
   const user = getStoredUser();
 
   return (
     <ConfigProvider locale={zhCN} theme={theme}>
-      <Layout style={{ minHeight: '100vh', background: '#F5F5F7' }}>
-        {/* ─── Sidebar ─── */}
+      <Layout style={{ minHeight: '100vh', background: '#F0F1F5' }}>
+        {/* Sidebar (dark) */}
         <Sider
           width={240}
           style={{
-            background: 'rgba(255,255,255,0.55)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRight: '1px solid rgba(0,0,0,0.06)',
+            background: '#060A14',
+            borderRight: '1px solid rgba(255,255,255,0.06)',
             position: 'fixed',
             height: '100vh',
             left: 0,
@@ -63,19 +75,20 @@ export default function App() {
             flexDirection: 'column',
           }}
         >
-          {/* Logo */}
           <div
             style={{
-              padding: '28px 24px 20px',
-              borderBottom: '1px solid rgba(0,0,0,0.04)',
+              padding: '32px 24px 24px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
             }}
           >
             <div
               style={{
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: 700,
-                color: '#1D1D1F',
                 letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg, #C9A962, #E8D5A3)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
               }}
             >
               云上融
@@ -84,16 +97,15 @@ export default function App() {
               style={{
                 fontSize: 11,
                 fontWeight: 500,
-                color: '#AEAEB2',
+                color: '#555B6E',
                 letterSpacing: '0.08em',
-                marginTop: 2,
+                marginTop: 4,
               }}
             >
               智能融资分析平台
             </div>
           </div>
 
-          {/* Navigation */}
           <Menu
             mode="inline"
             selectedKeys={[currentPage]}
@@ -102,33 +114,22 @@ export default function App() {
             style={{
               border: 'none',
               background: 'transparent',
-              padding: '12px 0',
+              padding: '16px 0',
               flex: 1,
             }}
             items={[
-              {
-                key: 'dashboard',
-                icon: <HomeOutlined />,
-                label: '工作台',
-              },
-              {
-                key: 'credit',
-                icon: <FileSearchOutlined />,
-                label: '征信分析',
-              },
-              {
-                key: 'bank',
-                icon: <BankOutlined />,
-                label: '流水分析',
-              },
+              { key: 'dashboard', icon: <HomeOutlined />, label: '工作台' },
+              { key: 'credit', icon: <FileSearchOutlined />, label: '征信分析' },
+              { key: 'bank', icon: <BankOutlined />, label: '流水分析' },
+              { key: 'calculator', icon: <CalculatorOutlined />, label: '贷款计算器' },
+              { key: 'diagnostic', icon: <MedicineBoxOutlined />, label: '融资诊断' },
             ]}
           />
 
-          {/* User info at bottom */}
           <div
             style={{
               padding: '16px 20px',
-              borderTop: '1px solid rgba(0,0,0,0.04)',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
             }}
           >
             <Dropdown
@@ -149,8 +150,9 @@ export default function App() {
                   size={32}
                   icon={<UserOutlined />}
                   style={{
-                    background: 'rgba(0,0,0,0.06)',
-                    color: '#86868B',
+                    background: 'linear-gradient(135deg, rgba(201,169,98,0.2), rgba(201,169,98,0.1))',
+                    color: '#C9A962',
+                    border: '1px solid rgba(201,169,98,0.3)',
                   }}
                 />
                 <div>
@@ -158,51 +160,50 @@ export default function App() {
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#1D1D1F',
+                      color: '#F0F0F5',
                       display: 'block',
                       lineHeight: 1.3,
                     }}
                   >
                     {user?.display_name || user?.username || '用户'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: '#AEAEB2' }}>
-                    融资顾问
-                  </Text>
+                  <Text style={{ fontSize: 11, color: '#555B6E' }}>融资顾问</Text>
                 </div>
               </Space>
             </Dropdown>
           </div>
         </Sider>
 
-        {/* ─── Main Content ─── */}
-        <Layout style={{ marginLeft: 240, background: '#F5F5F7' }}>
-          <Content
-            style={{
-              padding: '28px 32px',
-              maxWidth: 1400,
-              width: '100%',
-            }}
-          >
+        <Layout style={{ marginLeft: 240, background: '#F0F1F5' }}>
+          <Content style={{ padding: '32px 36px', maxWidth: 1400, width: '100%' }}>
             {currentPage === 'dashboard' && (
-              <Dashboard
-                onNavigate={(page: PageKey) => setCurrentPage(page)}
-              />
+              <Dashboard onNavigate={(page: PageKey) => setCurrentPage(page)} />
             )}
             {currentPage === 'credit' && <CreditAnalysis />}
             {currentPage === 'bank' && <BankAnalysis />}
+            {currentPage === 'calculator' && <LoanCalculator />}
+            {currentPage === 'diagnostic' && <DiagnosticWizard />}
           </Content>
-
-          {/* Footer */}
           <div
             style={{
               textAlign: 'center',
-              padding: '12px 0 20px',
-              color: '#AEAEB2',
+              padding: '12px 0 24px',
+              color: '#A0A5B5',
               fontSize: 11,
-              letterSpacing: '0.05em',
+              letterSpacing: '0.08em',
             }}
           >
-            云上融 · 科技赋能金融
+            <span
+              style={{
+                background: 'linear-gradient(135deg, #C9A962, #E8D5A3)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              云上融
+            </span>
+            <span style={{ margin: '0 8px', opacity: 0.3 }}>·</span>
+            科技赋能金融
           </div>
         </Layout>
       </Layout>

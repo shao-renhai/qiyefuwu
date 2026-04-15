@@ -4,7 +4,7 @@ import { ArrowRightOutlined, SafetyCertificateOutlined } from '@ant-design/icons
 import type { UploadFile } from 'antd';
 import FileUploader from '../components/FileUploader';
 import CreditSummary from '../components/CreditSummary';
-import { createClient, uploadCreditReport, type CreditReportData } from '../services/api';
+import { findOrCreateClient, uploadCreditReport, type CreditReportData } from '../services/api';
 
 interface UploadCreditProps {
   onDone: (clientId: number, clientName: string) => void;
@@ -27,7 +27,7 @@ export default function UploadCredit({ onDone }: UploadCreditProps) {
     try {
       let cid = clientId;
       if (!cid) {
-        const client = await createClient(name.trim());
+        const client = await findOrCreateClient(name.trim());
         cid = client.id;
         setClientId(cid);
       }

@@ -55,6 +55,27 @@ async def upload_bank_statement(
     # Convert transactions to serializable format
     raw_data = [dict(tx) for tx in transactions]
 
+    # 同一客户 + 同一银行只保留最新流水，删除旧记录
+    old_query = db.query(BankStatement).filter(
+        BankStatement.client_id == client_id
+    )
+    if bank_name:
+        # 有银行名：只替换同银行的旧记录
+        old_query = old_query.filter(BankStatement.bank_name == bank_name)
+    else:
+        # 无银行名：替换所有无银行名的旧记录
+        old_query = old_query.filter(
+            (BankStatement.bank_name == None) | (BankStatement.bank_name == "")  # noqa: E711
+        )
+    for old in old_query.all():
+        old_path = os.path.join(UPLOAD_DIR, old.filename)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except OSError:
+                pass
+        db.delete(old)
+
     # Create DB record
     statement = BankStatement(
         client_id=client_id,

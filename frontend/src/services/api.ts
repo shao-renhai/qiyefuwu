@@ -98,6 +98,7 @@ export function isLoggedIn(): boolean {
 export interface Client {
   id: number;
   name: string;
+  company_name?: string | null;
   created_at: string;
 }
 
@@ -131,7 +132,58 @@ export interface CreditReport {
   filename: string;
   file_type: string;
   parsed_data: CreditReportData | null;
+  manual_data: Record<string, unknown> | null;
+  manual_mode: string | null;
   created_at: string;
+}
+
+export interface CreditImage {
+  id: number;
+  client_id: number;
+  filename: string;
+  original_name: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface RiskItem {
+  level: 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  detail: string;
+}
+
+export interface SuggestionItem {
+  category: string;
+  action: string;
+  priority: string;
+}
+
+export interface AnalysisReport {
+  client_name: string;
+  data_source: string;
+  overview: {
+    total_credit_limit: number;
+    total_balance: number;
+    debt_ratio: number;
+    institution_count: number;
+    card_limit: number;
+    card_used: number;
+    card_usage_rate: number;
+    installment_count: number;
+    installment_balance: number;
+    queries_6m: number;
+    queries_1y: number;
+    overdue_count: number;
+  };
+  debt_structure: Record<string, unknown>[];
+  type_summary: Record<string, { count: number; balance: number }>;
+  query_records: Record<string, unknown>;
+  overdue_records: Record<string, unknown>[];
+  risks: RiskItem[];
+  risk_summary: { high: number; medium: number; low: number };
+  suggestions: SuggestionItem[];
+  generated_at: string;
 }
 
 export interface MonthlySummaryItem {
@@ -200,14 +252,24 @@ export interface FullAnalysis {
 
 /* ─── API Functions ─── */
 
-export async function createClient(name: string): Promise<Client> {
-  const { data } = await http.post<Client>('/clients/', { name });
+export async function createClient(name: string, companyName?: string): Promise<Client> {
+  const { data } = await http.post<Client>('/clients/', { name, company_name: companyName || '' });
   return data;
 }
 
 export async function listClients(): Promise<Client[]> {
   const { data } = await http.get<Client[]>('/clients/');
   return data;
+}
+
+/**
+ * 查找或创建客户：先按名字搜索，存在则复用，否则新建
+ */
+export async function findOrCreateClient(name: string, companyName?: string): Promise<Client> {
+  const clients = await listClients();
+  const existing = clients.find(c => c.name === name);
+  if (existing) return existing;
+  return createClient(name, companyName);
 }
 
 export async function uploadCreditReport(
@@ -258,5 +320,64 @@ export async function exportPdf(clientId: number): Promise<Blob> {
   const { data } = await http.get(`/export/${clientId}/pdf`, {
     responseType: 'blob',
   });
+  return data;
+}
+
+/* ─── Credit Image Gallery ─── */
+
+export async function uploadCreditImage(clientId: number, file: File): Promise<CreditImage> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('client_id', String(clientId));
+  const { data } = await http.post<CreditImage>('/credit-image/upload', form);
+  return data;
+}
+
+export async function listCreditImages(clientId: number): Promise<CreditImage[]> {
+  const { data } = await http.get<CreditImage[]>(`/credit-image/${clientId}`);
+  return data;
+}
+
+export function getCreditImageUrl(filename: string): string {
+  return `/api/credit-image/file/${filename}`;
+}
+
+export async function deleteCreditImage(imageId: number): Promise<void> {
+  await http.delete(`/credit-image/${imageId}`);
+}
+
+/* ─── Credit Manual Data ─── */
+
+export async function saveManualData(
+  reportId: number,
+  mode: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  await http.put(`/credit-report/${reportId}/manual`, { mode, data });
+}
+
+export async function getManualData(reportId: number): Promise<{
+  report_id: number;
+  mode: string;
+  manual_data: Record<string, unknown> | null;
+  parsed_data: CreditReportData | null;
+}> {
+  const { data } = await http.get(`/credit-report/${reportId}/manual`);
+  return data;
+}
+
+/* ─── Credit Analysis Report ─── */
+
+export async function getAnalysisReport(reportId: number): Promise<AnalysisReport> {
+  const { data } = await http.get<AnalysisReport>(`/credit-report/${reportId}/analysis-report`);
+  return data;
+}
+
+/* ─── Latest Credit Report by Client ─── */
+
+export async function getLatestCreditReport(clientId: number): Promise<{
+  report: (CreditReport & { manual_mode: string | null }) | null;
+}> {
+  const { data } = await http.get(`/credit-report/client/${clientId}`);
   return data;
 }

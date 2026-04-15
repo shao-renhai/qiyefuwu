@@ -1,31 +1,28 @@
 import { useState } from 'react';
 import { Typography, Input, Button, message, Space, Table, Tag } from 'antd';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-import * as echarts from 'echarts/core';
-import { BarChart, LineChart } from 'echarts/charts';
-import { CanvasRenderer } from 'echarts/renderers';
-import {
-  TooltipComponent,
-  GridComponent,
-  LegendComponent,
-} from 'echarts/components';
 import FileUploader from '../components/FileUploader';
+import ErrorBoundary from '../components/ErrorBoundary';
 import {
   createClient,
   uploadBankStatement,
 } from '../services/api';
 import type { BankAnalysis as BankAnalysisData, AnomalyItem } from '../services/api';
 
-echarts.use([BarChart, LineChart, CanvasRenderer, TooltipComponent, GridComponent, LegendComponent]);
-
 const { Title, Text } = Typography;
 
-function money(n: number): string {
-  if (Math.abs(n) >= 10000) return `${(n / 10000).toFixed(2)}万`;
-  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2 });
+function toNum(v: unknown): number {
+  if (v == null) return 0;
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
 }
 
-export default function BankAnalysis() {
+function money(n: unknown): string {
+  const v = toNum(n);
+  if (Math.abs(v) >= 10000) return `${(v / 10000).toFixed(2)}万`;
+  return v.toLocaleString('zh-CN', { minimumFractionDigits: 2 });
+}
+
+function BankAnalysisInner() {
   const [clientName, setClientName] = useState('');
   const [clientId, setClientId] = useState<number | null>(null);
   const [bankName, setBankName] = useState('');
@@ -52,116 +49,25 @@ export default function BankAnalysis() {
         bankName || undefined,
       );
       if (result.analysis) {
-        setData(result.analysis);
+        // Sanitize: JSON round-trip to ensure all values are primitives
+        const clean = JSON.parse(JSON.stringify(result.analysis)) as BankAnalysisData;
+        setData(clean);
         message.success('银行流水分析完成');
+      } else {
+        message.warning('流水分析未返回数据，请检查上传文件格式');
       }
-    } catch {
-      message.error('上传失败，请重试');
+    } catch (err: unknown) {
+      console.error('银行流水上传错误:', err);
+      const error = err as { response?: { data?: { detail?: string } }; message?: string };
+      message.error(error.response?.data?.detail || error.message || '上传失败，请重试');
     } finally {
       setLoading(false);
     }
   };
 
-  // Monthly trend chart
-  const trendOption = data && data.monthly_summary.length > 0
-    ? {
-        grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
-        legend: {
-          data: ['收入', '支出'],
-          top: 0,
-          textStyle: { color: '#86868B', fontSize: 12 },
-        },
-        xAxis: {
-          type: 'category' as const,
-          data: data.monthly_summary.map((m) => m.month),
-          axisLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } },
-          axisLabel: { color: '#86868B', fontSize: 11 },
-          axisTick: { show: false },
-        },
-        yAxis: {
-          type: 'value' as const,
-          axisLine: { show: false },
-          axisLabel: { color: '#AEAEB2', fontSize: 11, formatter: (v: number) => money(v) },
-          splitLine: { lineStyle: { color: 'rgba(0,0,0,0.04)' } },
-        },
-        tooltip: {
-          trigger: 'axis' as const,
-          formatter: (params: Array<{ seriesName: string; value: number; axisValue: string }>) => {
-            let html = `<b>${params[0].axisValue}</b><br/>`;
-            params.forEach((p) => {
-              html += `${p.seriesName}: ${money(p.value)}<br/>`;
-            });
-            return html;
-          },
-        },
-        series: [
-          {
-            name: '收入',
-            type: 'bar',
-            data: data.monthly_summary.map((m) => m.income),
-            barWidth: 16,
-            itemStyle: {
-              borderRadius: [4, 4, 0, 0],
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#34C759' },
-                { offset: 1, color: 'rgba(52,199,89,0.3)' },
-              ]),
-            },
-          },
-          {
-            name: '支出',
-            type: 'bar',
-            data: data.monthly_summary.map((m) => m.expense),
-            barWidth: 16,
-            itemStyle: {
-              borderRadius: [4, 4, 0, 0],
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#FF3B30' },
-                { offset: 1, color: 'rgba(255,59,48,0.3)' },
-              ]),
-            },
-          },
-        ],
-      }
-    : null;
-
-  // Net income trend line
-  const netOption = data && data.monthly_summary.length > 0
-    ? {
-        grid: { left: 16, right: 16, top: 20, bottom: 24, containLabel: true },
-        xAxis: {
-          type: 'category' as const,
-          data: data.monthly_summary.map((m) => m.month),
-          axisLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } },
-          axisLabel: { color: '#86868B', fontSize: 11 },
-          axisTick: { show: false },
-        },
-        yAxis: {
-          type: 'value' as const,
-          axisLine: { show: false },
-          axisLabel: { color: '#AEAEB2', fontSize: 11, formatter: (v: number) => money(v) },
-          splitLine: { lineStyle: { color: 'rgba(0,0,0,0.04)' } },
-        },
-        series: [
-          {
-            type: 'line',
-            data: data.monthly_summary.map((m) => m.net),
-            smooth: true,
-            lineStyle: { color: '#007AFF', width: 3 },
-            itemStyle: { color: '#007AFF' },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(0,122,255,0.15)' },
-                { offset: 1, color: 'rgba(0,122,255,0)' },
-              ]),
-            },
-          },
-        ],
-        tooltip: {
-          formatter: (p: { name: string; value: number }) => `${p.name}<br/>净收入: ${money(p.value)}`,
-        },
-      }
-    : null;
+  const monthlySummary = data?.monthly_summary ?? [];
+  const topIncomeSources = data?.top_income_sources ?? [];
+  const anomalies = data?.anomalies ?? [];
 
   const anomalyColumns = [
     { title: '日期', dataIndex: 'date', key: 'date', width: 100 },
@@ -172,7 +78,7 @@ export default function BankAnalysis() {
       key: 'amount',
       width: 120,
       render: (v: number) => (
-        <span style={{ fontWeight: 600, color: '#1D1D1F' }}>{money(v)}</span>
+        <span style={{ fontWeight: 600, color: '#C9A962' }}>{money(v)}</span>
       ),
     },
     {
@@ -182,11 +88,11 @@ export default function BankAnalysis() {
       width: 100,
       render: (t: string) => {
         const map: Record<string, { color: string; label: string }> = {
-          large_amount: { color: '#FF3B30', label: '大额' },
-          round_number: { color: '#FF9F0A', label: '整数' },
-          regular_pattern: { color: '#007AFF', label: '规律' },
+          large_amount: { color: '#FF5630', label: '大额' },
+          round_number: { color: '#FFAB00', label: '整数' },
+          regular_pattern: { color: '#4C9AFF', label: '规律' },
         };
-        const info = map[t] || { color: '#86868B', label: t };
+        const info = map[t] || { color: '#6B7280', label: t || '其他' };
         return <Tag color={info.color}>{info.label}</Tag>;
       },
     },
@@ -194,22 +100,20 @@ export default function BankAnalysis() {
 
   return (
     <div>
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <Title
           level={3}
-          style={{ color: '#1D1D1F', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}
+          style={{ color: '#1A1A2E', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}
         >
           流水分析
         </Title>
-        <Text style={{ color: '#86868B', fontSize: 14 }}>
+        <Text style={{ color: '#6B7280', fontSize: 14 }}>
           上传银行流水，智能分析收支趋势与异常交易
         </Text>
       </div>
 
-      {/* Upload */}
       {!data && (
-        <div className="glass-card" style={{ padding: 32, marginBottom: 24 }}>
+        <div style={{ padding: 32, marginBottom: 24 }}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Space size="middle">
               <Input
@@ -218,24 +122,14 @@ export default function BankAnalysis() {
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 disabled={!!clientId}
-                style={{
-                  borderRadius: 12,
-                  background: 'rgba(0,0,0,0.03)',
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  width: 200,
-                }}
+                style={{ borderRadius: 12, width: 200 }}
               />
               <Input
                 size="large"
                 placeholder="银行名称（选填）"
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
-                style={{
-                  borderRadius: 12,
-                  background: 'rgba(0,0,0,0.03)',
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  width: 200,
-                }}
+                style={{ borderRadius: 12, width: 200 }}
               />
             </Space>
             <FileUploader
@@ -248,11 +142,10 @@ export default function BankAnalysis() {
         </div>
       )}
 
-      {/* Results */}
       {data && (
         <>
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ color: '#86868B', fontSize: 13 }}>
+            <Text style={{ color: '#6B7280', fontSize: 13 }}>
               客户：{clientName} {bankName && `· ${bankName}`}
             </Text>
             <Button
@@ -270,16 +163,15 @@ export default function BankAnalysis() {
           </div>
 
           <div className="bento-grid">
-            {/* Stats */}
             <div className="stat-card">
               <div className="stat-label">总收入</div>
-              <div className="stat-value success">{money(data.total_income)}</div>
+              <div className="stat-value" style={{ color: '#36B37E' }}>{money(data.total_income)}</div>
               <div className="stat-sub">去重后 {money(data.deduped_total_income)}</div>
             </div>
 
             <div className="stat-card">
               <div className="stat-label">总支出</div>
-              <div className="stat-value danger">{money(data.total_expense)}</div>
+              <div className="stat-value" style={{ color: '#FF5630' }}>{money(data.total_expense)}</div>
               <div className="stat-sub">去重后 {money(data.deduped_total_expense)}</div>
             </div>
 
@@ -291,43 +183,32 @@ export default function BankAnalysis() {
 
             <div className="stat-card">
               <div className="stat-label">月均净收入</div>
-              <div
-                className={`stat-value ${data.monthly_avg_net >= 0 ? 'success' : 'danger'}`}
-              >
+              <div className="stat-value" style={{ color: (data.monthly_avg_net ?? 0) >= 0 ? '#36B37E' : '#FF5630' }}>
                 {money(data.monthly_avg_net)}
               </div>
               <div className="stat-sub">月均支出 {money(data.monthly_avg_expense)}</div>
             </div>
 
-            {/* Monthly trend */}
-            {trendOption && (
-              <div className="span-4 chart-card">
-                <div className="chart-title">月度收支趋势</div>
-                <ReactEChartsCore
-                  echarts={echarts}
-                  option={trendOption}
-                  style={{ height: 280 }}
-                />
+            {monthlySummary.length > 0 && (
+              <div className="span-4 stat-card">
+                <div className="stat-label">月度收支明细</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, padding: '8px 0' }}>
+                  {monthlySummary.map((m, i) => (
+                    <div key={i} style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.02)', borderRadius: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A2E', marginBottom: 6 }}>{String(m.month)}</div>
+                      <div style={{ fontSize: 12, color: '#36B37E' }}>收入: {String(money(m.income))}</div>
+                      <div style={{ fontSize: 12, color: '#FF5630' }}>支出: {String(money(m.expense))}</div>
+                      <div style={{ fontSize: 12, color: toNum(m.net) >= 0 ? '#36B37E' : '#FF5630', fontWeight: 600 }}>净额: {String(money(m.net))}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Net income trend */}
-            {netOption && (
-              <div className="span-2 chart-card">
-                <div className="chart-title">净收入趋势</div>
-                <ReactEChartsCore
-                  echarts={echarts}
-                  option={netOption}
-                  style={{ height: 200 }}
-                />
-              </div>
-            )}
-
-            {/* Top income sources */}
-            <div className="span-2 chart-card">
-              <div className="chart-title">主要收入来源</div>
+            <div className="span-2 stat-card">
+              <div className="stat-label">主要收入来源</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {data.top_income_sources.slice(0, 5).map((s, i) => (
+                {topIncomeSources.slice(0, 5).map((s, i) => (
                   <div
                     key={i}
                     style={{
@@ -339,26 +220,25 @@ export default function BankAnalysis() {
                       borderRadius: 10,
                     }}
                   >
-                    <span style={{ fontSize: 13, color: '#1D1D1F', fontWeight: 500 }}>
-                      {s.counterparty || '未知'}
+                    <span style={{ fontSize: 13, color: '#1A1A2E', fontWeight: 500 }}>
+                      {String(s.counterparty || '未知')}
                     </span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#34C759' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#36B37E' }}>
                       {money(s.amount)}
                     </span>
                   </div>
                 ))}
-                {data.top_income_sources.length === 0 && (
-                  <div style={{ color: '#AEAEB2', fontSize: 13, padding: 12 }}>暂无数据</div>
+                {topIncomeSources.length === 0 && (
+                  <div style={{ color: '#9CA3AF', fontSize: 13, padding: 12 }}>暂无数据</div>
                 )}
               </div>
             </div>
 
-            {/* Anomalies */}
-            {data.anomalies && data.anomalies.length > 0 && (
-              <div className="span-4 chart-card">
-                <div className="chart-title">异常交易</div>
+            {anomalies.length > 0 && (
+              <div className="span-4 stat-card">
+                <div className="stat-label">异常交易</div>
                 <Table
-                  dataSource={data.anomalies.map((a: AnomalyItem, i: number) => ({
+                  dataSource={anomalies.map((a: AnomalyItem, i: number) => ({
                     ...a,
                     key: i,
                   }))}
@@ -373,5 +253,13 @@ export default function BankAnalysis() {
         </>
       )}
     </div>
+  );
+}
+
+export default function BankAnalysis() {
+  return (
+    <ErrorBoundary>
+      <BankAnalysisInner />
+    </ErrorBoundary>
   );
 }
