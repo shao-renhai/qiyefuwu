@@ -54,3 +54,57 @@ def sample_csv_file(tmp_path):
 @pytest.fixture
 def account_holder():
     return "张三"
+
+
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def api_client():
+    """Clean API test client with DB reset."""
+    from db.database import Base, engine
+    from main import app
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    yield TestClient(app)
+    Base.metadata.drop_all(bind=engine)
+
+
+def _register_and_auth(api_client, username, password="test123", display_name=None):
+    r = api_client.post("/api/auth/register", json={
+        "username": username,
+        "password": password,
+        "display_name": display_name or username,
+    })
+    assert r.status_code == 200, r.text
+    return r.json()["access_token"]
+
+
+def _set_user_role(username, role):
+    from db.database import SessionLocal, User
+    db = SessionLocal()
+    user = db.query(User).filter(User.username == username).first()
+    user.role = role
+    db.commit()
+    db.close()
+
+
+@pytest.fixture
+def founder_headers(api_client):
+    token = _register_and_auth(api_client, "founder_u")
+    _set_user_role("founder_u", "founder")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def consultant_headers(api_client):
+    token = _register_and_auth(api_client, "consultant_u")
+    _set_user_role("consultant_u", "consultant")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def telesales_headers(api_client):
+    token = _register_and_auth(api_client, "telesales_u")
+    _set_user_role("telesales_u", "telesales")
+    return {"Authorization": f"Bearer {token}"}
