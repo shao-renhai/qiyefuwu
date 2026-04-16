@@ -304,3 +304,70 @@ def archive_case(
     db.commit()
     db.refresh(case)
     return case
+
+
+# ---------- 从客户生成案例 ----------
+class FromCustomerBody(BaseModel):
+    narrative: str
+    visit_reason: Optional[str] = None
+    core_problem: Optional[str] = None
+    urgency: Optional[str] = None
+    solution_type: Optional[str] = None
+    recommended_bank: Optional[str] = None
+    preparation_actions: Optional[str] = None
+    duration_days: Optional[int] = None
+    outcome: Optional[str] = None
+    approved_amount: Optional[float] = None
+    actual_rate: Optional[float] = None
+    bank_tier: Optional[str] = None
+    core_lessons: Optional[str] = None
+
+
+@router.post("/from-customer/{customer_id}", response_model=CaseOut)
+def create_case_from_customer(
+    customer_id: int,
+    body: FromCustomerBody,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role(["founder", "consultant"])),
+):
+    from db.database import Customer
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(404, "客户不存在")
+    role = (user.role or "consultant").lower()
+    if role != "founder" and customer.created_by_id != user.id and customer.assigned_to_id != user.id:
+        raise HTTPException(403, "无权从该客户生成案例")
+
+    case = Case(
+        user_id=user.id,
+        created_by_id=user.id,
+        customer_id=customer_id,
+        narrative=body.narrative,
+        industry=customer.industry or "未分类",
+        company_size=customer.company_size,
+        company_age=customer.company_age,
+        credit_status=customer.credit_status,
+        monthly_cashflow=customer.monthly_cashflow,
+        has_tax_record=customer.has_tax_record,
+        collateral_type=customer.collateral_type,
+        collateral_value=customer.collateral_value,
+        target_amount=customer.target_amount,
+        visit_reason=body.visit_reason,
+        core_problem=body.core_problem,
+        urgency=body.urgency,
+        solution_type=body.solution_type,
+        recommended_bank=body.recommended_bank,
+        preparation_actions=body.preparation_actions,
+        duration_days=body.duration_days,
+        outcome=body.outcome,
+        approved_amount=body.approved_amount,
+        actual_rate=body.actual_rate,
+        bank_tier=body.bank_tier,
+        core_lessons=body.core_lessons,
+        status="draft",
+        tier="seed",
+    )
+    db.add(case)
+    db.commit()
+    db.refresh(case)
+    return case

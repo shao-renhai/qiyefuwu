@@ -209,3 +209,50 @@ def test_顾问不能归档(api_client, founder_headers, consultant_headers):
     }).json()["id"]
     r = api_client.post(f"/api/cases/{cid}/archive", headers=consultant_headers)
     assert r.status_code == 403
+
+
+# ---------- 从客户生成案例测试 ----------
+
+def test_从客户一键生成案例草稿(api_client, consultant_headers):
+    # 先建一个客户
+    cid = api_client.post("/api/customers", headers=consultant_headers, json={
+        "name": "王总",
+        "stage": "closed_won",
+        "industry": "贸易",
+        "company_size": "小微",
+        "company_age": 3,
+        "monthly_cashflow": 500000,
+        "target_amount": 800000,
+        "credit_status": "良好",
+    }).json()["id"]
+    # 从客户生成案例
+    r = api_client.post(f"/api/cases/from-customer/{cid}", headers=consultant_headers, json={
+        "narrative": "王总的融资过程：快速过审。",
+        "outcome": "approved",
+        "approved_amount": 800000,
+    })
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "draft"
+    assert body["customer_id"] == cid
+    assert body["industry"] == "贸易"
+    assert body["monthly_cashflow"] == 500000
+    assert body["approved_amount"] == 800000
+
+
+def test_从客户生成案例_没权限的客户(api_client, consultant_headers, founder_headers):
+    # 创始人建一个客户不分配
+    cid = api_client.post("/api/customers", headers=founder_headers, json={
+        "name": "别人的", "stage": "consulting",
+    }).json()["id"]
+    r = api_client.post(f"/api/cases/from-customer/{cid}", headers=consultant_headers, json={
+        "narrative": "偷取",
+    })
+    assert r.status_code == 403
+
+
+def test_从不存在的客户生成案例(api_client, consultant_headers):
+    r = api_client.post("/api/cases/from-customer/9999", headers=consultant_headers, json={
+        "narrative": "x",
+    })
+    assert r.status_code == 404
