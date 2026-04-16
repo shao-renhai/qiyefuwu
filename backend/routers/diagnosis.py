@@ -193,15 +193,19 @@ def _answers_to_input(answers: dict,
 # ─── 获取客户关联数据 ──────────────────────────────────────────────────
 
 def _get_client_data(db: Session, client_id: int):
-    """拉取客户最新的征信和流水数据"""
+    """拉取客户最新的征信和流水数据，manual_data 优先于 parsed_data"""
     credit_data = None
     bank_data = None
 
     latest_credit = db.query(CreditReport).filter(
         CreditReport.client_id == client_id
     ).order_by(CreditReport.created_at.desc()).first()
-    if latest_credit and latest_credit.parsed_data:
-        credit_data = latest_credit.parsed_data
+    if latest_credit:
+        # manual_data 最高优先级，parsed_data 兜底
+        if latest_credit.manual_data:
+            credit_data = _merge_manual_to_credit(latest_credit.manual_data, latest_credit.parsed_data)
+        elif latest_credit.parsed_data:
+            credit_data = latest_credit.parsed_data
 
     latest_bank = db.query(BankStatement).filter(
         BankStatement.client_id == client_id
@@ -210,6 +214,42 @@ def _get_client_data(db: Session, client_id: int):
         bank_data = latest_bank.analysis
 
     return credit_data, bank_data
+
+
+def _merge_manual_to_credit(manual: dict, parsed: dict = None) -> dict:
+    """将手动录入数据转换为 _answers_to_input 期望的 credit_data 格式"""
+    base = dict(parsed) if parsed else {}
+
+    # 总负债
+    total_balance = manual.get("total_balance", 0) or 0
+    if total_balance:
+        base["total_debt"] = total_balance
+        base["total_balance"] = total_balance
+
+    # 信用卡
+    cards = manual.get("credit_cards", {})
+    if cards:
+        card_limit = cards.get("total_limit", 0) or 0
+        card_used = cards.get("used", 0) or 0
+        if card_limit > 0:
+            base["credit_card_total_limit"] = card_limit
+            base["credit_card_used"] = card_used
+            base["credit_card_usage_rate"] = round(card_used / card_limit * 100, 1)
+
+    # 查询记录
+    qr = manual.get("query_records", {})
+    if qr:
+        base["query_records"] = qr
+
+    # 在贷机构 → active_loans
+    institutions = manual.get("institutions", [])
+    if institutions:
+        base["active_loans"] = institutions
+        base["institution_details"] = institutions
+
+    # 逾期（manual 目前不录入逾期，保留 parsed 的数据）
+
+    return base
 
 
 # ─── 开始诊断 ────────────────────────────────────────────────────────
