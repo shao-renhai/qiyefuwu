@@ -19,6 +19,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     display_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    role = Column(String, default="consultant")  # founder / consultant / telesales
     created_at = Column(DateTime, default=datetime.utcnow)
     clients = relationship("Client", back_populates="owner", cascade="all, delete-orphan")
 
@@ -55,6 +56,104 @@ class BankStatement(Base):
     analysis = Column(JSON, nullable=True)        # analysis results
     created_at = Column(DateTime, default=datetime.utcnow)
     client = relationship("Client", back_populates="bank_statements")
+
+
+class Customer(Base):
+    """客户主档：含电销意向/谈单接待/成交全阶段，字段逐步补齐"""
+    __tablename__ = "customers"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    name = Column(String, nullable=False)
+    phone = Column(String, index=True, nullable=True)
+    company_name = Column(String, nullable=True)
+    industry = Column(String, nullable=True)
+    company_size = Column(String, nullable=True)
+    source = Column(String, nullable=True)
+
+    stage = Column(String, default="lead")
+    intent_level = Column(Integer, default=3)
+    target_amount = Column(Float, nullable=True)
+    next_follow_up_at = Column(DateTime, nullable=True)
+
+    company_age = Column(Integer, nullable=True)
+    monthly_cashflow = Column(Float, nullable=True)
+    has_tax_record = Column(Boolean, nullable=True)
+    collateral_type = Column(String, nullable=True)
+    collateral_value = Column(Float, nullable=True)
+    credit_status = Column(String, nullable=True)
+
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow)
+
+    interactions = relationship("CustomerInteraction", back_populates="customer", cascade="all, delete-orphan")
+    cases = relationship("Case", back_populates="customer")
+
+
+class CustomerInteraction(Base):
+    """客户跟进记录：电话/微信/到店等每次联系的记录"""
+    __tablename__ = "customer_interactions"
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    channel = Column(String)
+    content = Column(Text)
+    intent_level_after = Column(Integer, nullable=True)
+    next_follow_up_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    customer = relationship("Customer", back_populates="interactions")
+
+
+class Case(Base):
+    """案例库：种子库（创始人审核发布）是 MVP 核心输出"""
+    __tablename__ = "cases"
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    reviewed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    narrative = Column(Text, nullable=False)
+
+    industry = Column(String)
+    company_size = Column(String, nullable=True)
+    company_age = Column(Integer, nullable=True)
+    credit_status = Column(String, nullable=True)
+    monthly_cashflow = Column(Float, nullable=True)
+    has_tax_record = Column(Boolean, nullable=True)
+    collateral_type = Column(String, nullable=True)
+    collateral_value = Column(Float, nullable=True)
+
+    visit_reason = Column(Text, nullable=True)
+    core_problem = Column(Text, nullable=True)
+    urgency = Column(String, nullable=True)
+    target_amount = Column(Float, nullable=True)
+
+    solution_type = Column(String, nullable=True)
+    recommended_bank = Column(String, nullable=True)
+    preparation_actions = Column(Text, nullable=True)
+    duration_days = Column(Integer, nullable=True)
+
+    outcome = Column(String, nullable=True)
+    approved_amount = Column(Float, nullable=True)
+    actual_rate = Column(Float, nullable=True)
+    bank_tier = Column(String, nullable=True)
+    core_lessons = Column(Text, nullable=True)
+
+    status = Column(String, default="draft")
+    tier = Column(String, default="seed")
+    review_notes = Column(Text, nullable=True)
+    published_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow)
+
+    customer = relationship("Customer", back_populates="cases")
 
 
 def get_db():
