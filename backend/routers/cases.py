@@ -220,3 +220,87 @@ def delete_case(
     db.delete(case)
     db.commit()
     return {"ok": True}
+
+
+# ---------- 工作流 Schemas ----------
+class RejectBody(BaseModel):
+    review_notes: str
+
+
+# ---------- 工作流 Endpoints ----------
+@router.post("/{case_id}/submit", response_model=CaseOut)
+def submit_case(
+    case_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(404, "案例不存在")
+    role = (user.role or "consultant").lower()
+    if role != "founder" and case.created_by_id != user.id:
+        raise HTTPException(403, "无权提交此案例")
+    if case.status != "draft":
+        raise HTTPException(400, f"案例状态为 {case.status}，无法提交")
+    case.status = "pending_review"
+    case.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+@router.post("/{case_id}/publish", response_model=CaseOut)
+def publish_case(
+    case_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("founder")),
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(404, "案例不存在")
+    if case.status not in ("draft", "pending_review"):
+        raise HTTPException(400, f"案例状态为 {case.status}，无法发布")
+    case.status = "published"
+    case.reviewed_by_id = user.id
+    case.published_at = datetime.utcnow()
+    case.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+@router.post("/{case_id}/reject", response_model=CaseOut)
+def reject_case(
+    case_id: int,
+    body: RejectBody,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("founder")),
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(404, "案例不存在")
+    if case.status != "pending_review":
+        raise HTTPException(400, f"案例状态为 {case.status}，无法打回")
+    case.status = "draft"
+    case.review_notes = body.review_notes
+    case.reviewed_by_id = user.id
+    case.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+@router.post("/{case_id}/archive", response_model=CaseOut)
+def archive_case(
+    case_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("founder")),
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(404, "案例不存在")
+    case.status = "archived"
+    case.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(case)
+    return case

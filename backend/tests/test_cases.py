@@ -149,3 +149,63 @@ def test_删除草稿(api_client, consultant_headers):
     assert r.status_code == 200
     r2 = api_client.get(f"/api/cases/{cid}", headers=consultant_headers)
     assert r2.status_code == 404
+
+
+# ---------- 工作流测试 ----------
+
+def test_顾问提交草稿进入待审(api_client, consultant_headers):
+    cid = api_client.post("/api/cases", headers=consultant_headers, json={"narrative": "x", "industry": "A"}).json()["id"]
+    r = api_client.post(f"/api/cases/{cid}/submit", headers=consultant_headers)
+    assert r.status_code == 200
+    assert r.json()["status"] == "pending_review"
+
+
+def test_非草稿不能提交(api_client, founder_headers):
+    cid = api_client.post("/api/cases", headers=founder_headers, json={
+        "narrative": "x", "industry": "A", "status": "published",
+    }).json()["id"]
+    r = api_client.post(f"/api/cases/{cid}/submit", headers=founder_headers)
+    assert r.status_code == 400
+
+
+def test_创始人发布待审案例(api_client, founder_headers, consultant_headers):
+    cid = api_client.post("/api/cases", headers=consultant_headers, json={"narrative": "x", "industry": "A"}).json()["id"]
+    api_client.post(f"/api/cases/{cid}/submit", headers=consultant_headers)
+    r = api_client.post(f"/api/cases/{cid}/publish", headers=founder_headers)
+    assert r.status_code == 200
+    assert r.json()["status"] == "published"
+    assert r.json()["published_at"] is not None
+    assert r.json()["reviewed_by_id"] is not None
+
+
+def test_顾问不能发布(api_client, consultant_headers):
+    cid = api_client.post("/api/cases", headers=consultant_headers, json={"narrative": "x", "industry": "A"}).json()["id"]
+    api_client.post(f"/api/cases/{cid}/submit", headers=consultant_headers)
+    r = api_client.post(f"/api/cases/{cid}/publish", headers=consultant_headers)
+    assert r.status_code == 403
+
+
+def test_创始人打回(api_client, founder_headers, consultant_headers):
+    cid = api_client.post("/api/cases", headers=consultant_headers, json={"narrative": "x", "industry": "A"}).json()["id"]
+    api_client.post(f"/api/cases/{cid}/submit", headers=consultant_headers)
+    r = api_client.post(f"/api/cases/{cid}/reject", headers=founder_headers, json={"review_notes": "信息不全"})
+    assert r.status_code == 200
+    assert r.json()["status"] == "draft"
+    assert r.json()["review_notes"] == "信息不全"
+
+
+def test_归档已发布案例(api_client, founder_headers):
+    cid = api_client.post("/api/cases", headers=founder_headers, json={
+        "narrative": "old", "industry": "A", "status": "published",
+    }).json()["id"]
+    r = api_client.post(f"/api/cases/{cid}/archive", headers=founder_headers)
+    assert r.status_code == 200
+    assert r.json()["status"] == "archived"
+
+
+def test_顾问不能归档(api_client, founder_headers, consultant_headers):
+    cid = api_client.post("/api/cases", headers=founder_headers, json={
+        "narrative": "x", "industry": "A", "status": "published",
+    }).json()["id"]
+    r = api_client.post(f"/api/cases/{cid}/archive", headers=consultant_headers)
+    assert r.status_code == 403
