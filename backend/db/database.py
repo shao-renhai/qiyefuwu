@@ -110,6 +110,22 @@ class DiagnosisRecord(Base):
     updated_at = Column(DateTime, onupdate=datetime.utcnow)
 
 
+class BankAnalysisContext(Base):
+    """客户级流水分析的人工补录数据（每客户一条）"""
+    __tablename__ = "bank_analysis_context"
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), unique=True, nullable=False)
+    # 阶段 A 必填字段
+    target_loan_amount = Column(Float, nullable=True)          # 目标贷款金额
+    existing_monthly_payment = Column(Float, nullable=True)    # 现有贷款月还款总额
+    # 阶段 B/C 预留字段（先建好，避免后期 ALTER）
+    industry = Column(String, nullable=True)
+    apply_deadline = Column(DateTime, nullable=True)
+    related_parties = Column(JSON, default=[])                 # 关联方/家人公司名单
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.utcnow, default=datetime.utcnow)
+
+
 def generate_share_token() -> str:
     return uuid.uuid4().hex[:12]
 

@@ -313,6 +313,112 @@ export async function uploadBankStatement(
   return data;
 }
 
+/* ─── Bank Statement (client-level) ─── */
+
+export interface BankStatementSummary {
+  id: number;
+  filename: string;
+  bank_name: string | null;
+  created_at: string | null;
+  tx_count: number;
+}
+
+export interface BankContext {
+  target_loan_amount: number | null;
+  existing_monthly_payment: number | null;
+  industry: string | null;
+  suggested_monthly_payment: number | null;
+  exists: boolean;
+}
+
+export interface BankRatios {
+  coverage_ratio: number | null;
+  balance_ratio: number | null;
+  volatility_coef: number | null;
+  low_balance_ratio: number | null;
+  loan_cover_ratio: number | null;
+}
+
+export interface BankRisk {
+  level: 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  detail: string;
+}
+
+export interface BankSuggestion {
+  category: string;
+  action: string;
+  priority: string;
+}
+
+export interface BankDiagnosisReport {
+  client_name: string;
+  client_company: string | null;
+  generated_at: string;
+  account_count: number;
+  banks: string[];
+  context: {
+    target_loan_amount: number | null;
+    existing_monthly_payment: number | null;
+  };
+  overview: {
+    monthly_avg_income: number;
+    monthly_avg_expense: number;
+    monthly_avg_net: number;
+    total_income: number;
+    total_expense: number;
+    min_balance: number;
+    avg_balance: number;
+    monthly_avg_tx_count: number;
+  };
+  ratios: BankRatios;
+  thresholds: Record<string, Record<string, number>>;
+  monthly_summary: MonthlySummaryItem[];
+  top_income_sources: TopItem[];
+  top_expense_categories: TopItem[];
+  monthly_ending_balances: MonthlyBalance[];
+  risks: BankRisk[];
+  suggestions: BankSuggestion[];
+  risk_summary: { high: number; medium: number; low: number };
+}
+
+export async function listClientStatements(clientId: number): Promise<BankStatementSummary[]> {
+  const { data } = await http.get<BankStatementSummary[]>(
+    `/bank-statement/client/${clientId}/statements`,
+  );
+  return data;
+}
+
+export async function deleteBankStatement(statementId: number): Promise<void> {
+  await http.delete(`/bank-statement/statement/${statementId}`);
+}
+
+export async function getBankContext(clientId: number): Promise<BankContext> {
+  const { data } = await http.get<BankContext>(
+    `/bank-statement/client/${clientId}/context`,
+  );
+  return data;
+}
+
+export async function saveBankContext(
+  clientId: number,
+  payload: {
+    target_loan_amount?: number | null;
+    existing_monthly_payment?: number | null;
+    industry?: string | null;
+  },
+): Promise<void> {
+  await http.put(`/bank-statement/client/${clientId}/context`, payload);
+}
+
+export async function getBankDiagnosisReport(clientId: number): Promise<BankDiagnosisReport> {
+  const { data } = await http.get<BankDiagnosisReport>(
+    `/bank-statement/client/${clientId}/diagnosis-report`,
+  );
+  return data;
+}
+
 export async function getAnalysis(clientId: number): Promise<FullAnalysis> {
   const { data } = await http.get<FullAnalysis>(`/analysis/${clientId}`);
   return data;
