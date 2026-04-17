@@ -500,3 +500,52 @@ body {
   border-color: #C9A962 !important;
   box-shadow: 0 0 0 2px rgba(201,169,98,0.1) !important;
 }
+
+/* ─── A4 Print Styles ─── */
+/* 征信分析报告等页面在打印（含"导出为 PDF"）时，
+   隐藏侧栏/按钮/Tab 栏，保证 A4 打印干净 */
+@media print {
+  @page { size: A4 portrait; margin: 14mm; }
+
+  html, body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 隐藏左侧深色侧栏 */
+  aside.ant-layout-sider { display: none !important; }
+
+  /* 主内容区铺满 */
+  .ant-layout {
+    margin-left: 0 !important;
+    background: #fff !important;
+  }
+  .ant-layout-content {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* 隐藏按钮、上传器、Tab 页签栏、底部署名 */
+  .ant-btn,
+  .ant-upload,
+  .ant-tabs-nav,
+  .no-print { display: none !important; }
+
+  /* 仅保留「分析报告」面板：Tabs 把其他面板设为 display:none，
+     分析报告面板内容直接铺开 */
+  .ant-tabs-tabpane { display: block !important; }
+  .ant-tabs-tabpane-hidden { display: none !important; }
+
+  /* 卡片打印友好：去阴影、避免跨页切开 */
+  .ant-card {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* 表格、风险/建议块避免被切断 */
+  .ant-table-wrapper,
+  .ant-alert { page-break-inside: avoid; break-inside: avoid; }
+}

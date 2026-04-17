@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Typography, Input, Button, message, Space, Tabs, Select, Card, Spin,
-  Upload, Modal, InputNumber, Form, Table, Popconfirm, Tag,
+  Upload, Modal, InputNumber, Form, Table, Popconfirm, Tag, Switch,
   Row, Col, Statistic, Alert, Empty,
 } from 'antd';
 import {
@@ -230,9 +230,11 @@ function DataEntryTab({ reportId, onSaved }: { reportId: number; onSaved: () => 
             installment_count: (md.credit_cards as Record<string, unknown>)?.installment_count ?? 0,
             installment_balance: (md.credit_cards as Record<string, unknown>)?.installment_balance ?? 0,
             query_6m_loan: (md.query_records as Record<string, Record<string, number>>)?.recent_6m?.loan_approval ?? 0,
-            query_6m_card: (md.query_records as Record<string, Record<string, number>>)?.recent_6m?.card_approval ?? 0,
             query_1y_loan: (md.query_records as Record<string, Record<string, number>>)?.recent_1y?.loan_approval ?? 0,
-            query_1y_card: (md.query_records as Record<string, Record<string, number>>)?.recent_1y?.card_approval ?? 0,
+            overdue_current: (md.overdue_meta as Record<string, unknown>)?.overdue_current ?? false,
+            overdue_months_ago: (md.overdue_meta as Record<string, unknown>)?.overdue_months_ago ?? null,
+            overdue_count: (md.overdue_meta as Record<string, unknown>)?.overdue_count ?? 0,
+            has_lian3_lei6: (md.overdue_meta as Record<string, unknown>)?.has_lian3_lei6 ?? false,
           });
           if (Array.isArray(md.institutions)) {
             setInstitutions((md.institutions as InstitutionRow[]).map((inst, i) => ({
@@ -300,15 +302,59 @@ function DataEntryTab({ reportId, onSaved }: { reportId: number; onSaved: () => 
         query_records: {
           recent_6m: {
             loan_approval: vals.query_6m_loan || 0,
-            card_approval: vals.query_6m_card || 0,
+            card_approval: 0,
           },
           recent_1y: {
             loan_approval: vals.query_1y_loan || 0,
-            card_approval: vals.query_1y_card || 0,
+            card_approval: 0,
           },
         },
         institutions: mode === 'detail' ? institutions : [],
       };
+
+      // ── 逾期记录（方案 B 数字式） ──
+      // 原始 scheme B 字段保留到 overdue_meta，便于 UI 重新加载
+      const overdueCurrent: boolean = !!vals.overdue_current;
+      const overdueMonthsAgo: number | null =
+        vals.overdue_months_ago === undefined || vals.overdue_months_ago === null
+          ? null
+          : Number(vals.overdue_months_ago);
+      const overdueCount: number = Number(vals.overdue_count) || 0;
+      const hasLian3Lei6: boolean = !!vals.has_lian3_lei6;
+
+      data.overdue_meta = {
+        overdue_current: overdueCurrent,
+        overdue_months_ago: overdueMonthsAgo,
+        overdue_count: overdueCount,
+        has_lian3_lei6: hasLian3Lei6,
+      };
+
+      // 合成 overdue_records 列表，供 credit_analysis.py 风险检测使用
+      const overdueList: Record<string, unknown>[] = [];
+      const total = Math.max(
+        overdueCount,
+        overdueCurrent ? 1 : 0,
+        hasLian3Lei6 ? 1 : 0,
+      );
+      for (let i = 0; i < total; i++) {
+        const isFirstAndCurrent = i === 0 && overdueCurrent;
+        const monthStr =
+          overdueMonthsAgo !== null
+            ? (() => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - overdueMonthsAgo);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              })()
+            : '';
+        overdueList.push({
+          institution: hasLian3Lei6 && i === 0 ? '连三累六' : '逾期记录',
+          month: monthStr,
+          amount: 0,
+          status: isFirstAndCurrent ? '未结清' : '已结清',
+          type: isFirstAndCurrent ? '当前逾期' : '历史逾期',
+        });
+      }
+      data.overdue_records = overdueList;
       await saveManualData(reportId, mode, data);
       message.success('数据已保存');
       onSaved();
@@ -516,25 +562,55 @@ function DataEntryTab({ reportId, onSaved }: { reportId: number; onSaved: () => 
         </Card>
 
         {/* ── 查询记录 ── */}
-        <Card title="查询记录" size="small" style={{ marginBottom: 16, borderRadius: 12 }}>
+        <Card title="查询记录（贷款审批）" size="small" style={{ marginBottom: 16, borderRadius: 12 }}>
           <Row gutter={16}>
-            <Col span={6}>
+            <Col span={12}>
               <Form.Item label="近6月贷款审批" name="query_6m_loan">
                 <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
               </Form.Item>
             </Col>
-            <Col span={6}>
-              <Form.Item label="近6月信用卡审批" name="query_6m_card">
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
+            <Col span={12}>
               <Form.Item label="近1年贷款审批" name="query_1y_loan">
                 <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
               </Form.Item>
             </Col>
-            <Col span={6}>
-              <Form.Item label="近1年信用卡审批" name="query_1y_card">
+          </Row>
+        </Card>
+
+        {/* ── 逾期记录 ── */}
+        <Card title="逾期记录" size="small" style={{ marginBottom: 16, borderRadius: 12 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="当前是否有逾期（未结清）"
+                name="overdue_current"
+                valuePropName="checked"
+                tooltip="一票否决项；如当前仍有未结清逾期，绝大多数银行会拒贷"
+              >
+                <Switch checkedChildren="是" unCheckedChildren="否" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label='是否构成"连三累六"'
+                name="has_lian3_lei6"
+                valuePropName="checked"
+                tooltip="连续3个月逾期或累计6次逾期，视同当前逾期"
+              >
+                <Switch checkedChildren="是" unCheckedChildren="否" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="最近一次逾期发生在（月前）"
+                name="overdue_months_ago"
+                tooltip="留空表示无历史逾期；填 0 表示本月刚发生"
+              >
+                <InputNumber style={{ width: '100%' }} min={0} max={120} placeholder="如 6 表示 6 个月前" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="累计逾期次数" name="overdue_count">
                 <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
               </Form.Item>
             </Col>
