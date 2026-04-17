@@ -12,10 +12,10 @@ from services.bank_diagnosis import (
 )
 
 
-def _mk_ctx(target=None, monthly=None):
+def _mk_ctx(target_loan_amount=None, monthly=None, existing_monthly_payment=None):
     return SimpleNamespace(
-        target_loan_amount=target,
-        existing_monthly_payment=monthly,
+        target_loan_amount=target_loan_amount,
+        existing_monthly_payment=existing_monthly_payment if existing_monthly_payment is not None else monthly,
         industry=None,
         apply_deadline=None,
         related_parties=[],
