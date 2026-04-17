@@ -1,11 +1,23 @@
-import { useState, useCallback } from 'react';
-import { ConfigProvider, Layout, Menu, Typography, Avatar, Dropdown, Space } from 'antd';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import {
+  ConfigProvider,
+  Layout,
+  Menu,
+  Typography,
+  Avatar,
+  Dropdown,
+  Space,
+} from 'antd';
+import type { MenuProps } from 'antd';
 import {
   LogoutOutlined,
   UserOutlined,
   FileSearchOutlined,
   BankOutlined,
   HomeOutlined,
+  TeamOutlined,
+  ContactsOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
 import theme from './theme';
@@ -13,16 +25,55 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CreditAnalysis from './pages/CreditAnalysis';
 import BankAnalysis from './pages/BankAnalysis';
+import LeadsPage from './pages/Leads';
+import CustomersPage from './pages/Customers';
+import CustomerDetailPage from './pages/CustomerDetail';
+import CasesPage from './pages/Cases';
+import CaseFormPage from './pages/CaseForm';
 import { isLoggedIn, getStoredUser, logout } from './services/api';
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
 
-type PageKey = 'dashboard' | 'credit' | 'bank';
+type PageKey =
+  | 'dashboard'
+  | 'credit'
+  | 'bank'
+  | 'leads'
+  | 'customers'
+  | 'customer-detail'
+  | 'cases'
+  | 'case-new'
+  | 'case-edit';
+
+function parseHash(): { page: PageKey; id?: number } {
+  const hash = window.location.hash || '';
+  const mCustomerDetail = hash.match(/^#\/customers\/(\d+)$/);
+  if (mCustomerDetail) return { page: 'customer-detail', id: Number(mCustomerDetail[1]) };
+  const mCaseEdit = hash.match(/^#\/cases\/(\d+)\/edit$/);
+  if (mCaseEdit) return { page: 'case-edit', id: Number(mCaseEdit[1]) };
+  if (hash === '#/leads') return { page: 'leads' };
+  if (hash === '#/customers') return { page: 'customers' };
+  if (hash === '#/cases') return { page: 'cases' };
+  if (hash === '#/cases/new') return { page: 'case-new' };
+  if (hash === '#/credit') return { page: 'credit' };
+  if (hash === '#/bank') return { page: 'bank' };
+  return { page: 'dashboard' };
+}
+
+type AppMenuItem = NonNullable<MenuProps['items']>[number] & {
+  roles?: string[];
+};
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(isLoggedIn());
-  const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
+  const [route, setRoute] = useState(parseHash());
+
+  useEffect(() => {
+    const onHashChange = () => setRoute(parseHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleLoginSuccess = useCallback(() => {
     setLoggedIn(true);
@@ -33,6 +84,51 @@ export default function App() {
     setLoggedIn(false);
   }, []);
 
+  const navigate = useCallback((page: PageKey) => {
+    const hashMap: Record<PageKey, string> = {
+      dashboard: '#/',
+      credit: '#/credit',
+      bank: '#/bank',
+      leads: '#/leads',
+      customers: '#/customers',
+      'customer-detail': '#/customers',
+      cases: '#/cases',
+      'case-new': '#/cases/new',
+      'case-edit': '#/cases',
+    };
+    window.location.hash = hashMap[page];
+  }, []);
+
+  const user = getStoredUser();
+  const role = (user?.role || 'consultant').toLowerCase();
+
+  const menuItems: AppMenuItem[] = useMemo(() => {
+    const all: AppMenuItem[] = [
+      { key: 'dashboard', icon: <HomeOutlined />, label: '工作台' },
+      {
+        key: 'leads',
+        icon: <TeamOutlined />,
+        label: '意向池',
+        roles: ['founder', 'telesales'],
+      },
+      {
+        key: 'customers',
+        icon: <ContactsOutlined />,
+        label: '客户',
+        roles: ['founder', 'consultant'],
+      },
+      {
+        key: 'cases',
+        icon: <BookOutlined />,
+        label: '案例库',
+        roles: ['founder', 'consultant'],
+      },
+      { key: 'credit', icon: <FileSearchOutlined />, label: '征信分析' },
+      { key: 'bank', icon: <BankOutlined />, label: '流水分析' },
+    ];
+    return all.filter((it) => !it.roles || it.roles.includes(role));
+  }, [role]);
+
   if (!loggedIn) {
     return (
       <ConfigProvider locale={zhCN} theme={theme}>
@@ -41,7 +137,17 @@ export default function App() {
     );
   }
 
-  const user = getStoredUser();
+  // Keep menu selection in sync with the routed page.
+  // customer-detail highlights customers; case-new / case-edit highlight cases.
+  const selectedKey: string =
+    route.page === 'customer-detail'
+      ? 'customers'
+      : route.page === 'case-new' || route.page === 'case-edit'
+        ? 'cases'
+        : route.page;
+
+  const roleLabel =
+    role === 'founder' ? '创始人' : role === 'telesales' ? '电销' : '融资顾问';
 
   return (
     <ConfigProvider locale={zhCN} theme={theme}>
@@ -96,8 +202,8 @@ export default function App() {
           {/* Navigation */}
           <Menu
             mode="inline"
-            selectedKeys={[currentPage]}
-            onClick={({ key }) => setCurrentPage(key as PageKey)}
+            selectedKeys={[selectedKey]}
+            onClick={({ key }) => navigate(key as PageKey)}
             className="sidebar-menu"
             style={{
               border: 'none',
@@ -105,23 +211,7 @@ export default function App() {
               padding: '12px 0',
               flex: 1,
             }}
-            items={[
-              {
-                key: 'dashboard',
-                icon: <HomeOutlined />,
-                label: '工作台',
-              },
-              {
-                key: 'credit',
-                icon: <FileSearchOutlined />,
-                label: '征信分析',
-              },
-              {
-                key: 'bank',
-                icon: <BankOutlined />,
-                label: '流水分析',
-              },
-            ]}
+            items={menuItems}
           />
 
           {/* User info at bottom */}
@@ -166,7 +256,7 @@ export default function App() {
                     {user?.display_name || user?.username || '用户'}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#AEAEB2' }}>
-                    融资顾问
+                    {roleLabel}
                   </Text>
                 </div>
               </Space>
@@ -183,13 +273,27 @@ export default function App() {
               width: '100%',
             }}
           >
-            {currentPage === 'dashboard' && (
-              <Dashboard
-                onNavigate={(page: PageKey) => setCurrentPage(page)}
-              />
+            {route.page === 'dashboard' && (
+              <Dashboard onNavigate={(p) => navigate(p as PageKey)} />
             )}
-            {currentPage === 'credit' && <CreditAnalysis />}
-            {currentPage === 'bank' && <BankAnalysis />}
+            {route.page === 'credit' && <CreditAnalysis />}
+            {route.page === 'bank' && <BankAnalysis />}
+            {route.page === 'leads' && <LeadsPage />}
+            {route.page === 'customers' && <CustomersPage />}
+            {route.page === 'customer-detail' &&
+              (route.id ? (
+                <CustomerDetailPage customerId={route.id} />
+              ) : (
+                <div>客户 ID 无效</div>
+              ))}
+            {route.page === 'cases' && <CasesPage role={role} />}
+            {route.page === 'case-new' && <CaseFormPage />}
+            {route.page === 'case-edit' &&
+              (route.id ? (
+                <CaseFormPage caseId={route.id} />
+              ) : (
+                <div>案例 ID 无效</div>
+              ))}
           </Content>
 
           {/* Footer */}

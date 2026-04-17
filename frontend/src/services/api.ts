@@ -33,6 +33,7 @@ export interface AuthUser {
   user_id: number;
   username: string;
   display_name: string;
+  role?: string;
 }
 
 export interface TokenResponse {
@@ -41,6 +42,7 @@ export interface TokenResponse {
   user_id: number;
   username: string;
   display_name: string;
+  role?: string;
 }
 
 /* ─── Auth Functions ─── */
