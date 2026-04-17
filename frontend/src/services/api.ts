@@ -288,6 +288,13 @@ export async function uploadCreditReport(
   return data;
 }
 
+export async function createManualCreditReport(clientId: number): Promise<CreditReport> {
+  const { data } = await http.post<CreditReport>('/credit-report/manual-create', {
+    client_id: clientId,
+  });
+  return data;
+}
+
 export async function uploadBankStatement(
   clientId: number,
   file: File,

@@ -125,6 +125,45 @@ async def upload_credit_report(
     return report
 
 
+# ─── 无文件手动创建：跳过上传直接进入录入 ──────────────────────────────
+
+
+class ManualCreatePayload(BaseModel):
+    client_id: int
+
+
+@router.post("/manual-create", response_model=CreditReportResponse)
+def manual_create_report(
+    payload: ManualCreatePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """为客户创建一条空的征信报告（无文件），用于直接手动录入。
+    已存在则返回最新的一条，避免重复创建。"""
+    client = db.query(Client).filter(
+        Client.id == payload.client_id, Client.user_id == current_user.id
+    ).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    existing = db.query(CreditReport).filter(
+        CreditReport.client_id == payload.client_id
+    ).order_by(CreditReport.created_at.desc()).first()
+    if existing:
+        return existing
+
+    report = CreditReport(
+        client_id=payload.client_id,
+        filename="manual-entry",
+        file_type="manual",
+        parsed_data=None,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
 # ─── 手动数据录入 ──────────────────────────────────────────────────────
 
 class ManualDataPayload(BaseModel):

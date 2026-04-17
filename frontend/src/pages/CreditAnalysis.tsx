@@ -14,7 +14,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import FileUploader from '../components/FileUploader';
 import {
   listClients, findOrCreateClient,
-  uploadCreditReport, getLatestCreditReport,
+  uploadCreditReport, getLatestCreditReport, createManualCreditReport,
   uploadCreditImage, listCreditImages, getCreditImageUrl, deleteCreditImage,
   saveManualData, getManualData, getAnalysisReport,
 } from '../services/api';
@@ -935,12 +935,31 @@ function CreditAnalysisInner() {
     try {
       const c = await findOrCreateClient(clientName.trim());
       setSelectedClientId(c.id);
+      // 新建客户后直接建空报告，跳到"数据录入"页，不强制先上传文件
+      try {
+        const r = await createManualCreditReport(c.id);
+        setReport(r);
+        setActiveTab('entry');
+      } catch {
+        // ignore — 用户仍可走上传流程
+      }
       // Refresh client list
       const updated = await listClients();
       setClients(updated);
       setClientMode('select');
     } catch {
       message.error('创建客户失败');
+    }
+  };
+
+  const handleStartManualEntry = async () => {
+    if (!selectedClientId) return;
+    try {
+      const r = await createManualCreditReport(selectedClientId);
+      setReport(r);
+      setActiveTab('entry');
+    } catch {
+      message.error('创建失败，请重试');
     }
   };
 
@@ -1093,7 +1112,12 @@ function CreditAnalysisInner() {
       {selectedClientId && !report && !loadingReport && (
         <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
           <UploadOutlined style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }} />
-          <div>请先上传征信报告文件（PDF或图片）</div>
+          <div style={{ marginBottom: 16 }}>
+            上传征信报告文件（PDF或图片）自动解析，或直接手动录入
+          </div>
+          <Button type="primary" onClick={handleStartManualEntry}>
+            直接手动录入
+          </Button>
         </div>
       )}
     </div>
