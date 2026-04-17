@@ -36,6 +36,7 @@ class TokenResponse(BaseModel):
     user_id: int
     username: str
     display_name: str
+    role: str = "consultant"
 
 
 class UserInfoResponse(BaseModel):
@@ -43,6 +44,7 @@ class UserInfoResponse(BaseModel):
     username: str
     display_name: str
     is_active: bool
+    role: str = "consultant"
     created_at: str
 
     class Config:
@@ -83,6 +85,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
         user_id=user.id,
         username=user.username,
         display_name=user.display_name or user.username,
+        role=user.role or "consultant",
     )
 
 
@@ -103,6 +106,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         user_id=user.id,
         username=user.username,
         display_name=user.display_name or user.username,
+        role=user.role or "consultant",
     )
 
 
@@ -113,5 +117,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         username=current_user.username,
         display_name=current_user.display_name or current_user.username,
         is_active=current_user.is_active,
+        role=current_user.role or "consultant",
         created_at=current_user.created_at.isoformat(),
     )

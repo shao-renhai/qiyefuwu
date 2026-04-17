@@ -2,7 +2,18 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import init_db
-from routers import auth, clients, credit_report, credit_image, bank_statement, analysis, export, diagnosis
+from routers import (
+    auth,
+    clients,
+    credit_report,
+    credit_image,
+    bank_statement,
+    analysis,
+    export,
+    diagnosis,
+    customers,
+    cases,
+)
 
 app = FastAPI(title="企业融资数据智能分析工具", version="1.0.0")
 
@@ -26,6 +37,8 @@ app.include_router(bank_statement.router)
 app.include_router(analysis.router)
 app.include_router(export.router)
 app.include_router(diagnosis.router)
+app.include_router(customers.router)
+app.include_router(cases.router)
 
 
 @app.on_event("startup")

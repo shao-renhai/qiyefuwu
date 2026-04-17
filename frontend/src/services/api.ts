@@ -33,6 +33,7 @@ export interface AuthUser {
   user_id: number;
   username: string;
   display_name: string;
+  role?: string;
 }
 
 export interface TokenResponse {
@@ -41,6 +42,7 @@ export interface TokenResponse {
   user_id: number;
   username: string;
   display_name: string;
+  role?: string;
 }
 
 /* ─── Auth Functions ─── */
@@ -381,3 +383,68 @@ export async function getLatestCreditReport(clientId: number): Promise<{
   const { data } = await http.get(`/credit-report/client/${clientId}`);
   return data;
 }
+
+/* ─── Customer/Case types ─── */
+
+import type {
+  Customer,
+  CustomerInput,
+  CustomerInteraction,
+  InteractionInput,
+} from '../types/customer';
+import type { Case, CaseInput } from '../types/case';
+
+/* ─── Customers API ─── */
+
+export const customersApi = {
+  list: (stage?: string) =>
+    http.get<Customer[]>('/customers', { params: stage ? { stage } : {} }).then((r) => r.data),
+  get: (id: number) => http.get<Customer>(`/customers/${id}`).then((r) => r.data),
+  create: (body: CustomerInput) =>
+    http.post<Customer>('/customers', body).then((r) => r.data),
+  update: (id: number, body: Partial<CustomerInput>) =>
+    http.put<Customer>(`/customers/${id}`, body).then((r) => r.data),
+  remove: (id: number) => http.delete(`/customers/${id}`).then((r) => r.data),
+  assign: (id: number, assigned_to_id: number) =>
+    http
+      .post<Customer>(`/customers/${id}/assign`, { assigned_to_id })
+      .then((r) => r.data),
+  listInteractions: (id: number) =>
+    http
+      .get<CustomerInteraction[]>(`/customers/${id}/interactions`)
+      .then((r) => r.data),
+  addInteraction: (id: number, body: InteractionInput) =>
+    http
+      .post<CustomerInteraction>(`/customers/${id}/interactions`, body)
+      .then((r) => r.data),
+};
+
+/* ─── Cases API ─── */
+
+export interface CaseListFilters {
+  status?: string;
+  industry?: string;
+  tier?: string;
+}
+
+export const casesApi = {
+  list: (filters?: CaseListFilters) =>
+    http.get<Case[]>('/cases', { params: filters || {} }).then((r) => r.data),
+  get: (id: number) => http.get<Case>(`/cases/${id}`).then((r) => r.data),
+  create: (body: CaseInput) => http.post<Case>('/cases', body).then((r) => r.data),
+  update: (id: number, body: Partial<CaseInput>) =>
+    http.put<Case>(`/cases/${id}`, body).then((r) => r.data),
+  remove: (id: number) => http.delete(`/cases/${id}`).then((r) => r.data),
+  submit: (id: number) => http.post<Case>(`/cases/${id}/submit`).then((r) => r.data),
+  publish: (id: number) => http.post<Case>(`/cases/${id}/publish`).then((r) => r.data),
+  reject: (id: number, review_notes: string) =>
+    http.post<Case>(`/cases/${id}/reject`, { review_notes }).then((r) => r.data),
+  archive: (id: number) => http.post<Case>(`/cases/${id}/archive`).then((r) => r.data),
+  fromCustomer: (
+    customer_id: number,
+    body: { narrative: string; [k: string]: unknown },
+  ) =>
+    http
+      .post<Case>(`/cases/from-customer/${customer_id}`, body)
+      .then((r) => r.data),
+};
