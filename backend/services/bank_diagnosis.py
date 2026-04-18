@@ -203,9 +203,6 @@ def compute_annual_overview(analysis: Dict[str, Any]) -> Dict[str, Any]:
 
     annual_revenue = _safe_sum("deduped_income", window)
     annual_revenue_raw = _safe_sum("income", window)
-    # Defensive: fallback to income if deduped_income absent (shouldn't happen post-Task 1)
-    if annual_revenue == 0 and annual_revenue_raw > 0 and not any("deduped_income" in r for r in window):
-        annual_revenue = annual_revenue_raw
 
     self_transfer_amount = max(0, annual_revenue_raw - annual_revenue)
     self_transfer_ratio = (

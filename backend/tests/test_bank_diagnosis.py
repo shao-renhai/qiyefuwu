@@ -274,3 +274,26 @@ def test_annual_overview_size_tier_boundaries():
     # xlarge: 1.5亿/year (>1亿)
     a4 = {"monthly_summary": _mk_monthly_summary(12, income_per_month=12_500_000)}
     assert compute_annual_overview(a4)["size_tier"] == "xlarge"
+
+
+def test_annual_overview_self_transfer_ratio():
+    """Verify self_transfer_amount/ratio when deduped_income < income"""
+    # 12 months, each: raw income 1,500,000 but only 1,200,000 is business
+    # → 300k self-transfer per month → 3.6M total on 18M raw base → 20%
+    monthly = []
+    for i in range(12):
+        y, m = (2025, i + 5) if i + 5 <= 12 else (2026, i + 5 - 12)
+        monthly.append({
+            "month": f"{y:04d}-{m:02d}",
+            "income": 1_500_000,
+            "expense": 1_200_000,
+            "deduped_income": 1_200_000,
+            "deduped_expense": 1_000_000,
+            "net": 300_000,
+            "tx_count": 30,
+        })
+    ov = compute_annual_overview({"monthly_summary": monthly})
+    assert ov["annual_revenue"] == 14_400_000        # 1.2M × 12 (business only)
+    assert ov["annual_revenue_raw"] == 18_000_000    # 1.5M × 12 (raw)
+    assert ov["self_transfer_amount"] == 3_600_000   # 18M - 14.4M
+    assert ov["self_transfer_ratio"] == 0.2          # 3.6M / 18M
