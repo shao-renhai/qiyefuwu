@@ -22,13 +22,38 @@ from db.database import BankStatement, Client, CreditReport, BankAnalysisContext
 from services.analyzer import analyze_bank_statement, mark_duplicates
 
 
-# ─── 阈值配置（业内常见取值）────────────────────────────────────────
+# ─── 阈值配置（业内常见取值，后续基于案例库校准）────────────────────
 THRESHOLDS = {
-    "coverage":  {"healthy": 2.0, "warn": 1.5},   # 月均流入 / 月均月供
-    "balance":   {"healthy": 0.20, "warn": 0.10}, # 月均净流入 / 月均流入
-    "volatility": {"healthy": 0.30, "warn": 0.50}, # std / mean，越低越稳
-    "loan_ratio": {"healthy": 0.10, "warn": 0.05}, # 月均流水 / 目标贷款金额
-    "low_balance": {"healthy": 0.10, "warn": 0.05}, # 最低余额 / 月均流入
+    "coverage":  {"healthy": 2.0, "warn": 1.5},     # 月均流入 / 月均月供（higher_better）
+    "balance":   {"healthy": 0.20, "warn": 0.10},   # 月均净流入 / 月均流入（higher_better）
+    "volatility": {"healthy": 0.30, "warn": 0.50},  # std/mean（lower_better）
+    "low_balance": {"healthy": 0.10, "warn": 0.05}, # 最低余额 / 月均流入（higher_better）
+
+    # ── 新增：贷款覆盖率（反转后的语义：目标贷款 / 年营业额，lower_better）──
+    "loan_coverage": {
+        "healthy": 0.30,          # ≤30% 健康
+        "warn":    0.80,          # 30–80% 警戒；>80% 高风险
+        "unit_mismatch": 0.001,   # <0.1% 触发"金额单位核对"提示
+    },
+
+    # ── 新增：体量段位（按业务性年营业额，单位：元）──
+    "size_tier": {
+        "micro":  500_000,        # < 50 万
+        "small":  5_000_000,      # 50 万 – 500 万
+        "medium": 30_000_000,     # 500 万 – 3000 万
+        "large":  100_000_000,    # 3000 万 – 1 亿
+        # > 1 亿 = xlarge
+    },
+
+    # ── 新增：数据窗口不足提示（严格小于边界值时触发）──
+    "window_adequacy": {
+        "warn_below_months":   12,   # window < 12 → low 级（6–11 月）
+        "severe_below_months":  6,   # window < 6  → 升级 medium
+    },
+
+    # ── Deprecated：旧字段，保留一个版本避免外部代码直接崩──
+    # 新代码不要再读这个 key；下一次迭代删除
+    "loan_ratio": {"healthy": 0.10, "warn": 0.05},
 }
 
 
