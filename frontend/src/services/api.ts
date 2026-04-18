@@ -336,7 +336,25 @@ export interface BankRatios {
   balance_ratio: number | null;
   volatility_coef: number | null;
   low_balance_ratio: number | null;
-  loan_cover_ratio: number | null;
+  loan_coverage_ratio: number | null;     // Primary (new)
+  loan_cover_ratio?: number | null;       // Legacy — only for reading old cached reports
+}
+
+export interface AnnualOverview {
+  window_months: number;
+  window_start: string | null;
+  window_end: string | null;
+  annual_revenue: number;
+  annual_revenue_raw: number;
+  self_transfer_amount: number;
+  self_transfer_ratio: number;
+  monthly_avg_income: number;
+  size_tier: 'micro' | 'small' | 'medium' | 'large' | 'xlarge';
+  size_tier_label: string;
+  is_annualized: boolean;
+  annualized_hint: string | null;
+  full_window_months: number;
+  full_window_revenue: number;
 }
 
 export interface BankRisk {
@@ -372,6 +390,7 @@ export interface BankDiagnosisReport {
     avg_balance: number;
     monthly_avg_tx_count: number;
   };
+  annual_overview?: AnnualOverview;
   ratios: BankRatios;
   thresholds: Record<string, Record<string, number>>;
   monthly_summary: MonthlySummaryItem[];
