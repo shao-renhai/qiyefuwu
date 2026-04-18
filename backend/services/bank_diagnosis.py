@@ -316,7 +316,11 @@ def _level_for(value: float, thr: Dict[str, float], direction: str) -> str:
         return "high"
 
 
-def build_risks_and_suggestions(ratios: Dict[str, Any], analysis: Dict[str, Any]) -> Dict[str, List[dict]]:
+def build_risks_and_suggestions(
+    ratios: Dict[str, Any],
+    analysis: Dict[str, Any],
+    window_months: Optional[int] = None,
+) -> Dict[str, List[dict]]:
     risks: List[dict] = []
     suggestions: List[dict] = []
 
@@ -401,6 +405,16 @@ def build_risks_and_suggestions(ratios: Dict[str, Any], analysis: Dict[str, Any]
                 "priority": "high" if lvl == "high" else "medium",
             })
 
+    # ── 4b. 特殊异常：金额单位误填（loan_coverage 过小）──
+    if lc is not None and lc < THRESHOLDS["loan_coverage"]["unit_mismatch"]:
+        risks.append({
+            "level": "low",
+            "category": "金额异常",
+            "title": "目标贷款金额相对年营业额过小（< 0.1%）",
+            "detail": "请核对「目标贷款金额」字段的单位是否为元。"
+                      "常见错误：把「100 万」填成了「100」。",
+        })
+
     # ── 5. 最低余额 / 月均流入（资金链紧张）──────────────────
     lb = ratios.get("low_balance_ratio")
     if lb is not None:
@@ -432,6 +446,27 @@ def build_risks_and_suggestions(ratios: Dict[str, Any], analysis: Dict[str, Any]
             "action": "补充多个真实业务入账对手方，降低单一客户占比至 30% 以下",
             "priority": "medium",
         })
+
+    # ── 7. 数据窗口不足（依赖 annual_overview，通过参数传入）──
+    if window_months is not None:
+        wa = THRESHOLDS["window_adequacy"]
+        if window_months < wa["severe_below_months"]:
+            risks.append({
+                "level": "medium",
+                "category": "数据窗口",
+                "title": f"数据窗口仅 {window_months} 月，严重不足",
+                "detail": f"银行审阅通常要求近 12 月完整流水。"
+                          f"当前数据 < {wa['severe_below_months']} 月，"
+                          f"建议尽快补充，否则分析结果参考价值有限。",
+            })
+        elif window_months < wa["warn_below_months"]:
+            risks.append({
+                "level": "low",
+                "category": "数据窗口",
+                "title": f"数据窗口 {window_months} 月，建议补齐",
+                "detail": f"当前数据 < 12 月，部分指标基于近 {window_months} 月年化估算。"
+                          f"补齐至 12 月可提高分析精度。",
+            })
 
     # 排序：high > medium > low
     order = {"high": 0, "medium": 1, "low": 2}

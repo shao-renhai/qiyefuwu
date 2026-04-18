@@ -335,3 +335,43 @@ def test_loan_coverage_level_rules():
     ratios2 = {**ratios, "loan_coverage_ratio": 0.25}
     out2 = build_risks_and_suggestions(ratios2, {"top_income_sources": []})
     assert not any(r["category"] == "贷款覆盖率" for r in out2["risks"])
+
+
+def test_loan_coverage_unit_mismatch_hint():
+    """贷款 100 元 vs 年营业额 100 万 → 额外"金额异常"提示"""
+    from services.bank_diagnosis import build_risks_and_suggestions
+    ratios = {
+        "coverage_ratio": None, "balance_ratio": None,
+        "volatility_coef": None, "low_balance_ratio": None,
+        "loan_coverage_ratio": 0.0001,  # 100元 / 100万 = 0.0001
+    }
+    out = build_risks_and_suggestions(ratios, {"top_income_sources": []})
+    unit_hints = [r for r in out["risks"] if r["category"] == "金额异常"]
+    assert len(unit_hints) == 1
+    assert unit_hints[0]["level"] == "low"
+    assert "核对" in unit_hints[0]["detail"] or "单位" in unit_hints[0]["detail"]
+
+
+def test_window_adequacy_warnings():
+    """window_months < 6 → medium；6–11 → low；>=12 → 无"""
+    from services.bank_diagnosis import build_risks_and_suggestions
+    all_none_ratios = {k: None for k in
+                       ("coverage_ratio", "balance_ratio", "volatility_coef",
+                        "low_balance_ratio", "loan_coverage_ratio")}
+
+    # window=3 → medium
+    out = build_risks_and_suggestions(all_none_ratios, {"top_income_sources": []},
+                                       window_months=3)
+    w_risks = [r for r in out["risks"] if r["category"] == "数据窗口"]
+    assert len(w_risks) == 1 and w_risks[0]["level"] == "medium"
+
+    # window=8 → low
+    out2 = build_risks_and_suggestions(all_none_ratios, {"top_income_sources": []},
+                                        window_months=8)
+    w2 = [r for r in out2["risks"] if r["category"] == "数据窗口"]
+    assert len(w2) == 1 and w2[0]["level"] == "low"
+
+    # window=12 → 无
+    out3 = build_risks_and_suggestions(all_none_ratios, {"top_income_sources": []},
+                                        window_months=12)
+    assert not any(r["category"] == "数据窗口" for r in out3["risks"])
