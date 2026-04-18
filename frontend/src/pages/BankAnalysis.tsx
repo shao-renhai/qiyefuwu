@@ -404,15 +404,26 @@ function DiagnosisReportTab({ clientId }: { clientId: number }) {
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card size="small" style={{ borderRadius: 12, textAlign: 'center' }}>
-            <Statistic
-              title={<Tooltip title="月均流水 / 目标贷款金额，银行 10 倍原则，应 ≥ 10%">贷款匹配度</Tooltip>}
-              value={ra.loan_cover_ratio !== null ? ra.loan_cover_ratio * 100 : '—'}
-              suffix={ra.loan_cover_ratio !== null ? '%' : ''}
-              precision={ra.loan_cover_ratio !== null ? 1 : undefined}
-              valueStyle={{
-                color: ratioColor(ra.loan_cover_ratio, T.loan_ratio?.healthy ?? 0.1, T.loan_ratio?.warn ?? 0.05),
-              }}
-            />
+            {(() => {
+              const lcr = ra.loan_coverage_ratio ?? ra.loan_cover_ratio ?? null;
+              const has = lcr !== null && lcr !== undefined;
+              return (
+                <Statistic
+                  title={<Tooltip title="目标贷款 / 年营业额，银行标准应 ≤ 30%（越小越稳）">贷款覆盖率</Tooltip>}
+                  value={has ? lcr! * 100 : '—'}
+                  suffix={has ? '%' : ''}
+                  precision={has ? 1 : undefined}
+                  valueStyle={{
+                    color: ratioColor(
+                      lcr,
+                      T.loan_coverage?.healthy ?? 0.30,
+                      T.loan_coverage?.warn ?? 0.80,
+                      false,
+                    ),
+                  }}
+                />
+              );
+            })()}
           </Card>
         </Col>
       </Row>
