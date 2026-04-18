@@ -139,6 +139,111 @@ def merge_client_transactions(
     return analysis
 
 
+# ─── 年营业额总览 ────────────────────────────────────────────────
+
+def _classify_size_tier(annual_revenue: float) -> tuple[str, str]:
+    """Return (tier_code, tier_label) based on business-only annual revenue."""
+    t = THRESHOLDS["size_tier"]
+    if annual_revenue < t["micro"]:
+        return "micro", "微型（< 50 万）"
+    if annual_revenue < t["small"]:
+        return "small", "小型（50 万 – 500 万）"
+    if annual_revenue < t["medium"]:
+        return "medium", "中型（500 万 – 3000 万）"
+    if annual_revenue < t["large"]:
+        return "large", "大型（3000 万 – 1 亿）"
+    return "xlarge", "特大型（> 1 亿）"
+
+
+def compute_annual_overview(analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Compute annual revenue and size tier from analysis["monthly_summary"].
+    Rules per spec §3, §6.1.
+
+    Return fields:
+      window_months / window_start / window_end
+      annual_revenue / annual_revenue_raw / self_transfer_amount / self_transfer_ratio
+      monthly_avg_income
+      size_tier / size_tier_label
+      is_annualized / annualized_hint
+      full_window_months / full_window_revenue
+    """
+    monthly = analysis.get("monthly_summary") or []
+    full_window_months = len(monthly)
+
+    # Zero-flow fast-path
+    if full_window_months == 0:
+        tier, label = _classify_size_tier(0)
+        return {
+            "window_months": 0,
+            "window_start": None,
+            "window_end": None,
+            "annual_revenue": 0,
+            "annual_revenue_raw": 0,
+            "self_transfer_amount": 0,
+            "self_transfer_ratio": 0.0,
+            "monthly_avg_income": 0,
+            "size_tier": tier,
+            "size_tier_label": label,
+            "is_annualized": False,
+            "annualized_hint": None,
+            "full_window_months": 0,
+            "full_window_revenue": 0,
+        }
+
+    # Sort ascending to take "most recent N"
+    sorted_monthly = sorted(monthly, key=lambda m: m.get("month", ""))
+
+    # Take min(12, len) as the computation window
+    window_n = min(12, full_window_months)
+    window = sorted_monthly[-window_n:]
+
+    def _safe_sum(key, rows):
+        return sum(float(r.get(key) or 0) for r in rows)
+
+    annual_revenue = _safe_sum("deduped_income", window)
+    annual_revenue_raw = _safe_sum("income", window)
+    # Defensive: fallback to income if deduped_income absent (shouldn't happen post-Task 1)
+    if annual_revenue == 0 and annual_revenue_raw > 0 and not any("deduped_income" in r for r in window):
+        annual_revenue = annual_revenue_raw
+
+    self_transfer_amount = max(0, annual_revenue_raw - annual_revenue)
+    self_transfer_ratio = (
+        round(self_transfer_amount / annual_revenue_raw, 3)
+        if annual_revenue_raw > 0 else 0.0
+    )
+
+    # Monthly avg: window >= 12 → /12, else /window_n
+    monthly_avg_income = annual_revenue / (12 if window_n >= 12 else window_n)
+
+    is_annualized = window_n < 12
+    annualized_hint = None
+    if is_annualized and window_n > 0:
+        annualized = annual_revenue * 12 / window_n
+        annualized_hint = f"≈ 年化 ¥{annualized:,.0f}（×{12/window_n:.1f} 估算）"
+
+    tier, label = _classify_size_tier(annual_revenue)
+
+    full_window_revenue = _safe_sum("deduped_income", sorted_monthly)
+
+    return {
+        "window_months": window_n,
+        "window_start": window[0]["month"],
+        "window_end": window[-1]["month"],
+        "annual_revenue": round(annual_revenue, 2),
+        "annual_revenue_raw": round(annual_revenue_raw, 2),
+        "self_transfer_amount": round(self_transfer_amount, 2),
+        "self_transfer_ratio": self_transfer_ratio,
+        "monthly_avg_income": round(monthly_avg_income, 2),
+        "size_tier": tier,
+        "size_tier_label": label,
+        "is_annualized": is_annualized,
+        "annualized_hint": annualized_hint,
+        "full_window_months": full_window_months,
+        "full_window_revenue": round(full_window_revenue, 2),
+    }
+
+
 # ─── 三大比率 ─────────────────────────────────────────────────────────
 
 def compute_ratios(analysis: Dict[str, Any], context: Optional[BankAnalysisContext]) -> Dict[str, Any]:
