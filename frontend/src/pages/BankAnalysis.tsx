@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Typography, Input, Button, message, Space, Tabs, Select, Card, Spin,
   InputNumber, Form, Table, Popconfirm, Tag, Empty,
-  Row, Col, Statistic, Alert, Tooltip,
+  Row, Col, Statistic, Alert, Tooltip, Descriptions, Collapse,
 } from 'antd';
 import {
   BankOutlined, DeleteOutlined, PrinterOutlined,
@@ -18,7 +18,7 @@ import {
   getBankContext, saveBankContext, getBankDiagnosisReport,
 } from '../services/api';
 import type {
-  Client, BankStatementSummary, BankContext, BankDiagnosisReport,
+  Client, BankStatementSummary, BankContext, BankDiagnosisReport, AnnualOverview,
 } from '../services/api';
 
 const { Title, Text } = Typography;
@@ -46,6 +46,73 @@ function ratioColor(v: number | null, healthy: number, warn: number, higherBette
   if (v <= healthy) return '#36B37E';
   if (v <= warn) return '#FAAD14';
   return '#FF5630';
+}
+
+
+/* ─── AnnualOverviewCard ─── */
+
+function AnnualOverviewCard({ data }: { data: AnnualOverview }) {
+  if (!data || data.window_months === 0) {
+    return (
+      <Card style={{ borderRadius: 12, marginBottom: 24, background: '#FAFAFA' }}>
+        <div style={{ padding: 16, color: '#8C8C8C' }}>暂无流水数据，无法计算年营业额。</div>
+      </Card>
+    );
+  }
+
+  const moneyFull = (v: number) => `¥ ${v.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+  const isPartial = data.is_annualized;
+  const hasFullExtra = data.full_window_months > 12 && data.full_window_revenue > data.annual_revenue;
+
+  return (
+    <Card style={{ borderRadius: 12, marginBottom: 24, background: 'linear-gradient(135deg,#F0F5FF 0%,#E6FFFB 100%)' }}>
+      <Row gutter={24} align="middle">
+        <Col flex="auto">
+          <div style={{ color: '#595959', fontSize: 14, marginBottom: 4 }}>
+            {isPartial ? `近 ${data.window_months} 月业务性累计` : '近 12 月年营业额（业务性）'}
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 600, color: '#1A1A2E' }}>
+            {moneyFull(data.annual_revenue)}
+          </div>
+          {isPartial && data.annualized_hint && (
+            <div style={{ color: '#FA8C16', fontSize: 13, marginTop: 4 }}>{data.annualized_hint}</div>
+          )}
+        </Col>
+        <Col>
+          <div style={{ padding: '6px 14px', background: '#fff', borderRadius: 16, color: '#2F54EB', fontWeight: 500 }}>
+            体量段位：{data.size_tier_label}
+          </div>
+        </Col>
+      </Row>
+
+      <div style={{ marginTop: 12, color: '#8C8C8C', fontSize: 13 }}>
+        数据窗口：{data.window_start} ~ {data.window_end}（共 {data.window_months} 月）&nbsp;·&nbsp;
+        月均进账：{moneyFull(data.monthly_avg_income)}
+        {hasFullExtra && (
+          <span>&nbsp;·&nbsp;全周期 {data.full_window_months} 月累计：{moneyFull(data.full_window_revenue)}</span>
+        )}
+      </div>
+
+      <Collapse
+        ghost
+        size="small"
+        style={{ marginTop: 8 }}
+        items={[{
+          key: 'detail',
+          label: '展开：账面 vs 业务性 vs 剔除率',
+          children: (
+            <Descriptions size="small" column={{ xs: 1, sm: 3 }} bordered={false}>
+              <Descriptions.Item label="账面累计">{moneyFull(data.annual_revenue_raw)}</Descriptions.Item>
+              <Descriptions.Item label="业务性累计">{moneyFull(data.annual_revenue)}</Descriptions.Item>
+              <Descriptions.Item label="自转/提现剔除">
+                {moneyFull(data.self_transfer_amount)}（{(data.self_transfer_ratio * 100).toFixed(1)}%）
+              </Descriptions.Item>
+            </Descriptions>
+          ),
+        }]}
+      />
+    </Card>
+  );
 }
 
 
@@ -286,6 +353,9 @@ function DiagnosisReportTab({ clientId }: { clientId: number }) {
         </div>
         <Button icon={<PrinterOutlined />} onClick={() => window.print()}>打印报告</Button>
       </div>
+
+      {/* ── 年营业额总览 ── */}
+      {r.annual_overview && <AnnualOverviewCard data={r.annual_overview} />}
 
       {/* ── 三大比率卡片 ── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
