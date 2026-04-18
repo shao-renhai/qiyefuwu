@@ -484,8 +484,12 @@ def build_bank_diagnosis_report(
     from datetime import datetime
 
     analysis = merge_client_transactions(client, statements, context)
+    annual = compute_annual_overview(analysis)
     ratios = compute_ratios(analysis, context)
-    rs = build_risks_and_suggestions(ratios, analysis)
+    rs = build_risks_and_suggestions(
+        ratios, analysis,
+        window_months=annual["window_months"],
+    )
 
     high = sum(1 for r in rs["risks"] if r["level"] == "high")
     medium = sum(1 for r in rs["risks"] if r["level"] == "medium")
@@ -497,6 +501,7 @@ def build_bank_diagnosis_report(
         "generated_at": datetime.utcnow().isoformat(),
         "account_count": analysis.get("account_count", 0),
         "banks": analysis.get("banks", []),
+        "annual_overview": annual,
         "context": {
             "target_loan_amount": context.target_loan_amount if context else None,
             "existing_monthly_payment": context.existing_monthly_payment if context else None,

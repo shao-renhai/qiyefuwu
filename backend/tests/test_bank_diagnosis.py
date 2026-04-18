@@ -375,3 +375,29 @@ def test_window_adequacy_warnings():
     out3 = build_risks_and_suggestions(all_none_ratios, {"top_income_sources": []},
                                         window_months=12)
     assert not any(r["category"] == "数据窗口" for r in out3["risks"])
+
+
+def test_build_report_includes_annual_overview():
+    """端到端：build_bank_diagnosis_report 返回顶部含 annual_overview"""
+    client = SimpleNamespace(id=1, name="李四", company_name="李四商贸")
+    ctx = _mk_ctx(target_loan_amount=600_000)
+
+    # Build 12-month flow (200k real business income per month)
+    raw = []
+    for m in range(1, 13):
+        raw.append({
+            "date": f"2025-{m:02d}-05",
+            "counterparty": "客户A", "description": "货款",
+            "income": 200_000, "expense": 0, "balance": 200_000 * m,
+        })
+    s1 = SimpleNamespace(raw_data=raw, bank_name="工行")
+
+    report = build_bank_diagnosis_report(client, [s1], ctx)
+    assert "annual_overview" in report
+    ov = report["annual_overview"]
+    assert ov["window_months"] == 12
+    assert ov["annual_revenue"] == 2_400_000        # 20万 × 12
+    assert ov["size_tier"] == "small"               # 50万-500万
+    # loan_coverage_ratio = 60万 / 240万 = 0.25 → healthy
+    assert report["ratios"]["loan_coverage_ratio"] is not None
+    assert abs(report["ratios"]["loan_coverage_ratio"] - 0.25) < 0.01
