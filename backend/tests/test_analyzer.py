@@ -83,3 +83,25 @@ def test_analyze_top_income_sources(sample_transactions, account_holder):
     top_sources = result["top_income_sources"]
     assert len(top_sources) > 0
     assert top_sources[0]["counterparty"] == "某公司"
+
+
+def test_monthly_summary_contains_deduped_fields():
+    """monthly_summary 每条应携带 deduped_income / deduped_expense"""
+    txns = [
+        # 真实业务
+        {"date": "2026-01-05", "counterparty": "客户A", "description": "货款",
+         "income": 10000, "expense": 0, "balance": 10000},
+        # 自转（对手方 = 持有人）
+        {"date": "2026-01-06", "counterparty": "张三", "description": "自转",
+         "income": 5000, "expense": 0, "balance": 15000},
+        # 提现关键字（会被 mark_duplicates 剔除）
+        {"date": "2026-01-08", "counterparty": "微信", "description": "微信提现",
+         "income": 3000, "expense": 0, "balance": 18000},
+    ]
+    result = analyze_bank_statement(txns, "张三")
+    m = result["monthly_summary"]
+    assert len(m) == 1
+    row = m[0]
+    assert row["income"] == 18000          # 原始
+    assert row["deduped_income"] == 10000  # 只留真实业务
+    assert "deduped_expense" in row

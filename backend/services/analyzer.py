@@ -219,13 +219,18 @@ def analyze_bank_statement(
     monthly_summary = []
     for month in sorted(months):
         month_txns = [tx for tx in txns if tx["date"][:7] == month]
+        month_non_dup = [tx for tx in month_txns if not tx.get("is_duplicate", False)]
         m_income = sum(tx.get("income", 0) for tx in month_txns)
         m_expense = sum(tx.get("expense", 0) for tx in month_txns)
+        m_deduped_income = sum(tx.get("income", 0) for tx in month_non_dup)
+        m_deduped_expense = sum(tx.get("expense", 0) for tx in month_non_dup)
         m_count = len(month_txns)
         monthly_summary.append({
             "month": month,
             "income": m_income,
             "expense": m_expense,
+            "deduped_income": m_deduped_income,
+            "deduped_expense": m_deduped_expense,
             "net": m_income - m_expense,
             "tx_count": m_count,
         })
