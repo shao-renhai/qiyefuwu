@@ -454,6 +454,28 @@ function DiagnosisReportTab({ clientId }: { clientId: number }) {
         </Col>
       </Row>
 
+      {/* ── Top-of-list banner for configuration-type risks ── */}
+      {(() => {
+        const bannerRisks = (r.risks || []).filter(
+          (risk) => risk.category === '数据窗口' || risk.category === '金额异常',
+        );
+        if (bannerRisks.length === 0) return null;
+        return (
+          <div style={{ marginBottom: 16 }}>
+            {bannerRisks.map((risk, i) => (
+              <Alert
+                key={i}
+                type={risk.level === 'medium' ? 'warning' : 'info'}
+                showIcon
+                message={risk.title}
+                description={risk.detail}
+                style={{ marginBottom: 8, borderRadius: 8 }}
+              />
+            ))}
+          </div>
+        );
+      })()}
+
       {/* ── 风险预警 ── */}
       <Card
         title={
@@ -472,7 +494,9 @@ function DiagnosisReportTab({ clientId }: { clientId: number }) {
           <Alert message="暂未发现风险项，流水结构健康" type="success" showIcon />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {r.risks.map((risk, i) => (
+            {(r.risks || [])
+              .filter((risk) => risk.category !== '数据窗口' && risk.category !== '金额异常')
+              .map((risk, i) => (
               <div
                 key={i}
                 style={{
