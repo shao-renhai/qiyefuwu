@@ -47,7 +47,8 @@ def test_compute_ratios_healthy():
     assert r["coverage_ratio"] == 5.0                # 100k / 20k
     assert r["balance_ratio"] == 0.2                 # (income - 0.8*income) / income
     assert r["volatility_coef"] is not None
-    assert r["loan_cover_ratio"] == 0.2              # 100k / 500k
+    # 新公式：目标贷款 / 年营业额 = 500k / (100k*12) = 500k/1.2M ≈ 0.4167
+    assert abs(r["loan_coverage_ratio"] - (500000 / (100000 * 12))) < 0.001
     assert r["low_balance_ratio"] == 0.05            # 5k / 100k
 
 
@@ -56,7 +57,7 @@ def test_compute_ratios_missing_context():
     analysis = _mk_analysis()
     r = compute_ratios(analysis, ctx)
     assert r["coverage_ratio"] is None
-    assert r["loan_cover_ratio"] is None
+    assert r["loan_coverage_ratio"] is None
     # 其他仍应算出
     assert r["balance_ratio"] is not None
 
@@ -76,7 +77,7 @@ def test_compute_ratios_zero_income():
 def test_rules_low_coverage_yields_high_risk():
     # 覆盖率 0.5 远低于警戒线 1.5
     ratios = {"coverage_ratio": 0.5, "balance_ratio": None, "volatility_coef": None,
-              "low_balance_ratio": None, "loan_cover_ratio": None}
+              "low_balance_ratio": None, "loan_coverage_ratio": None}
     out = build_risks_and_suggestions(ratios, {"top_income_sources": []})
     cats = [r["category"] for r in out["risks"]]
     assert "偿债覆盖" in cats
@@ -87,11 +88,11 @@ def test_rules_low_coverage_yields_high_risk():
 
 def test_rules_healthy_produces_no_risk():
     ratios = {
-        "coverage_ratio": 3.0,       # > 2.0
-        "balance_ratio": 0.3,        # > 0.2
-        "volatility_coef": 0.1,      # < 0.3
-        "low_balance_ratio": 0.2,    # > 0.10
-        "loan_cover_ratio": 0.15,    # > 0.10
+        "coverage_ratio": 3.0,        # > 2.0
+        "balance_ratio": 0.3,         # > 0.2
+        "volatility_coef": 0.1,       # < 0.3
+        "low_balance_ratio": 0.2,     # > 0.10
+        "loan_coverage_ratio": 0.15,  # ≤ 0.30 → healthy (lower_better)
     }
     out = build_risks_and_suggestions(ratios, {"top_income_sources": []})
     # 仅剩 data-missing 风险（若任何 None），此处全非 None，应无风险
@@ -101,7 +102,7 @@ def test_rules_healthy_produces_no_risk():
 
 def test_rules_top_counterparty_dominates():
     ratios = {k: None for k in
-              ("coverage_ratio", "balance_ratio", "volatility_coef", "low_balance_ratio", "loan_cover_ratio")}
+              ("coverage_ratio", "balance_ratio", "volatility_coef", "low_balance_ratio", "loan_coverage_ratio")}
     analysis = {"top_income_sources": [{"counterparty": "大客户甲", "amount": 1_000_000, "ratio": 68.5}]}
     out = build_risks_and_suggestions(ratios, analysis)
     assert any(r["category"] == "收入集中" for r in out["risks"])
@@ -109,11 +110,11 @@ def test_rules_top_counterparty_dominates():
 
 def test_rules_sorted_high_first():
     ratios = {
-        "coverage_ratio": 0.5,       # high
-        "balance_ratio": 0.15,       # medium (warn 0.10 < x < healthy 0.20)
-        "volatility_coef": 0.4,      # medium
+        "coverage_ratio": 0.5,          # high
+        "balance_ratio": 0.15,          # medium (warn 0.10 < x < healthy 0.20)
+        "volatility_coef": 0.4,         # medium
         "low_balance_ratio": None,
-        "loan_cover_ratio": 0.08,    # medium
+        "loan_coverage_ratio": 0.85,    # high (lower_better: > warn 0.80)
     }
     out = build_risks_and_suggestions(ratios, {"top_income_sources": []})
     non_info = [r for r in out["risks"] if r["category"] != "数据缺失"]
@@ -297,3 +298,40 @@ def test_annual_overview_self_transfer_ratio():
     assert ov["annual_revenue_raw"] == 18_000_000    # 1.5M × 12 (raw)
     assert ov["self_transfer_amount"] == 3_600_000   # 18M - 14.4M
     assert ov["self_transfer_ratio"] == 0.2          # 3.6M / 18M
+
+
+# ─── loan_coverage_ratio semantic reversal ───
+
+def test_loan_coverage_semantic_reversal():
+    """新公式 loan_coverage_ratio = 目标贷款 / 年营业额（lower_better）"""
+    from services.bank_diagnosis import compute_ratios
+    # 年营业额 200 万 through monthly_summary (12 months × 166667)
+    analysis = _mk_analysis(monthly_incomes=[166667] * 12)  # ≈ 2M/year
+    # 贷款 60万 → 30% ≈ healthy
+    ctx = _mk_ctx(target_loan_amount=600_000)
+    r = compute_ratios(analysis, ctx)
+    assert r["loan_coverage_ratio"] is not None
+    assert abs(r["loan_coverage_ratio"] - 0.30) < 0.01
+
+    # 贷款 170万 → 85% = high
+    ctx2 = _mk_ctx(target_loan_amount=1_700_000)
+    r2 = compute_ratios(analysis, ctx2)
+    assert r2["loan_coverage_ratio"] > 0.80
+
+
+def test_loan_coverage_level_rules():
+    """Confirm rule engine uses lower_better classification for loan_coverage_ratio"""
+    from services.bank_diagnosis import build_risks_and_suggestions
+    # ratio=0.85 → high
+    ratios = {"coverage_ratio": None, "balance_ratio": None,
+              "volatility_coef": None, "low_balance_ratio": None,
+              "loan_coverage_ratio": 0.85}
+    out = build_risks_and_suggestions(ratios, {"top_income_sources": []})
+    cov_risks = [r for r in out["risks"] if r["category"] == "贷款覆盖率"]
+    assert len(cov_risks) == 1
+    assert cov_risks[0]["level"] == "high"
+
+    # ratio=0.25 → 无风险
+    ratios2 = {**ratios, "loan_coverage_ratio": 0.25}
+    out2 = build_risks_and_suggestions(ratios2, {"top_income_sources": []})
+    assert not any(r["category"] == "贷款覆盖率" for r in out2["risks"])

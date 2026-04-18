@@ -246,11 +246,11 @@ def compute_annual_overview(analysis: Dict[str, Any]) -> Dict[str, Any]:
 def compute_ratios(analysis: Dict[str, Any], context: Optional[BankAnalysisContext]) -> Dict[str, Any]:
     """
     返回：
-      coverage_ratio     流水覆盖率 = 月均净流入(去重) / 月均月供
-      balance_ratio      收支平衡率 = 月均净流入 / 月均流入
-      volatility_coef    流水波动系数 = std(月流入) / mean(月流入)
-      low_balance_ratio  最低余额 / 月均流入
-      loan_cover_ratio   月均流水 / 目标贷款金额
+      coverage_ratio         流水覆盖率 = 月均净流入(去重) / 月均月供
+      balance_ratio          收支平衡率 = 月均净流入 / 月均流入
+      volatility_coef        流水波动系数 = std(月流入) / mean(月流入)
+      low_balance_ratio      最低余额 / 月均流入
+      loan_coverage_ratio    目标贷款 / 年营业额（lower_better）
     字段值可能为 None（缺乏输入时），前端需容错。
     """
     monthly_avg_income = float(analysis.get("deduped_monthly_avg_income") or 0)
@@ -262,7 +262,7 @@ def compute_ratios(analysis: Dict[str, Any], context: Optional[BankAnalysisConte
         "balance_ratio": None,
         "volatility_coef": None,
         "low_balance_ratio": None,
-        "loan_cover_ratio": None,
+        "loan_coverage_ratio": None,
     }
 
     if context and context.existing_monthly_payment and context.existing_monthly_payment > 0:
@@ -279,8 +279,18 @@ def compute_ratios(analysis: Dict[str, Any], context: Optional[BankAnalysisConte
             statistics.pstdev(monthly_incomes) / statistics.mean(monthly_incomes), 3
         )
 
+    # ── 新：贷款覆盖率（反转后：目标贷款 / 年营业额，lower_better）──
+    # 年营业额 ≈ monthly_avg_income × 12（对齐 annual_overview 口径）
     if context and context.target_loan_amount and context.target_loan_amount > 0:
-        ratios["loan_cover_ratio"] = round(monthly_avg_income / context.target_loan_amount, 3)
+        annual_rev = monthly_avg_income * 12
+        if annual_rev > 0:
+            ratios["loan_coverage_ratio"] = round(
+                context.target_loan_amount / annual_rev, 4
+            )
+        else:
+            ratios["loan_coverage_ratio"] = None
+    else:
+        ratios["loan_coverage_ratio"] = None
 
     return ratios
 
@@ -370,22 +380,24 @@ def build_risks_and_suggestions(ratios: Dict[str, Any], analysis: Dict[str, Any]
                 "priority": "high" if lvl == "high" else "medium",
             })
 
-    # ── 4. 月均流水 / 目标贷款金额（银行"10 倍原则"）──────────
-    lc = ratios.get("loan_cover_ratio")
+    # ── 4. 贷款覆盖率（目标贷款 / 年营业额）─────────────────
+    lc = ratios.get("loan_coverage_ratio")
     if lc is not None:
-        lvl = _level_for(lc, THRESHOLDS["loan_ratio"], "higher_better")
+        lvl = _level_for(lc, THRESHOLDS["loan_coverage"], "lower_better")
         if lvl != "low":
             risks.append({
                 "level": lvl,
-                "category": "目标贷款匹配",
-                "title": f"月均流水 / 目标贷款额 仅 {lc*100:.1f}%",
-                "detail": f"银行经验：月均流水应 ≥ 贷款金额的 "
-                          f"{int(THRESHOLDS['loan_ratio']['healthy']*100)}%（即 10 倍覆盖）。"
-                          f"当前比例偏低，大额度申请可能不过初审",
+                "category": "贷款覆盖率",
+                "title": f"目标贷款占年营业额 {lc*100:.1f}%"
+                         f"（{'警戒' if lvl == 'medium' else '高风险'}）",
+                "detail": f"银行标准：目标贷款应 ≤ 年营业额的 "
+                          f"{int(THRESHOLDS['loan_coverage']['healthy']*100)}%。"
+                          f"当前占比偏高，{'需抵押或强担保加持' if lvl == 'medium' else '大概率过不了初审'}",
             })
             suggestions.append({
                 "category": "调整申贷策略",
-                "action": "① 降低目标贷款额，匹配当前流水；② 合并其他账户流水；③ 3-6 个月内做大业务性入账后再申",
+                "action": "① 降低目标贷款额；② 合并其他账户流水做大年营业额基数；"
+                          "③ 3-6 个月内做大业务性入账后再申",
                 "priority": "high" if lvl == "high" else "medium",
             })
 
