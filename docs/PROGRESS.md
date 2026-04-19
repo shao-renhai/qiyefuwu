@@ -8,9 +8,9 @@
 
 ## 当前焦点(Current Focus)
 
-**阶段:** M1 权限引擎 + Founder 后台 V1 的 **spec 撰写期**
-**分支:** `claude/permission-founder-admin`
-**下一步:** spec 经用户审阅 → 写 plan → subagent-driven 实现
+**阶段:** M1 + M2 两份 spec 已写完,**M1 已通过用户 review,M2 待 review**
+**分支:** `claude/permission-founder-admin` (已 push 到 GitHub)
+**下一步:** M2 spec 审阅通过后 → 调用 writing-plans 写实现计划 → subagent-driven 实现
 
 ---
 
@@ -23,7 +23,7 @@
 | 流水分析 v1 | — | — | ✅ | ✅ `149e87d` | 多账户合并+三大比率+诊断报告 |
 | **流水分析 v2**(银行年化重构) | ✅ [spec](superpowers/specs/2026-04-18-bank-annual-revenue-refactor-design.md) | ✅ [plan](superpowers/plans/2026-04-18-bank-annual-revenue-refactor.md) | ✅ 31/31 tests pass | ✅ `adfad67` @ 2026-04-19 | 年度收入框架 + 银企覆盖率反转 + UI banner |
 | **M1 权限引擎 + Founder 后台 V1** | ✅ [spec](superpowers/specs/2026-04-19-m1-permission-and-founder-admin-design.md) | ⏳ | ⏳ | ⏳ | 等用户 review |
-| **M2 Founder Dashboard + API 规范化** | ⏳ 待 M1 通过后写 | ⏳ | ⏳ | ⏳ | 本次重点 |
+| **M2 Founder Dashboard + API 规范化** | ✅ [spec](superpowers/specs/2026-04-19-m2-dashboard-and-api-normalization-design.md) | ⏳ | ⏳ | ⏳ | 等用户 review |
 | 现金流健康诊断 | ✅ [spec](superpowers/specs/2026-04-18-cashflow-health-diagnosis-design.md) | ⏳ | ⏳ | ⏳ | 已有 spec,plan 待 M1/M2 完成后排入 |
 
 ---
