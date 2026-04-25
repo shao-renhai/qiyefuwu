@@ -1,6 +1,8 @@
 """Authentication service — JWT token + password hashing."""
 
+import logging
 import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -12,11 +14,28 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db, User
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
-SECRET_KEY = os.getenv("SECRET_KEY", "qiyefuwu-secret-key-change-in-production-2026")
+# SECRET_KEY: JWT 签名密钥。
+# 生产环境必须通过 SECRET_KEY 环境变量提供;若未设置,本进程会生成
+# 一个随机临时 key —— 进程重启后所有已发 token 失效,且每个进程的
+# key 独立(多进程部署会出现登录态不一致)。这是故意设计:让"忘
+# 设 env"在开发能跑通、在生产立刻被发现。
+_SECRET_KEY_FROM_ENV = os.getenv("SECRET_KEY")
+if _SECRET_KEY_FROM_ENV:
+    SECRET_KEY = _SECRET_KEY_FROM_ENV
+else:
+    SECRET_KEY = secrets.token_urlsafe(32)
+    logger.warning(
+        "SECRET_KEY 环境变量未设置,已生成随机临时密钥。"
+        "进程重启后所有 JWT 失效;多进程部署会出现登录态不一致。"
+        "生产环境必须设置 SECRET_KEY 环境变量。"
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24 * 7  # 7 days
 
