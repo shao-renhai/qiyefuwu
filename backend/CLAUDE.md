@@ -1,13 +1,11 @@
+# 云上融企业服务平台 · CLAUDE.md
+# 项目共享上下文文档 · Claude Code 启动时自动读取
+
 ## 业务定位
 
 本项目为融资顾问公司提供数字化作业系统（B2B SaaS），不开展征信、
 撮合、放贷业务。所有命名、API 字段、对外文案须遵守
 [docs/POSITIONING.md](../docs/POSITIONING.md) 的边界声明。
-
----
-
-# 云上融企业服务平台 · CLAUDE.md
-# 项目共享上下文文档 · Claude Code 启动时自动读取
 
 ---
 

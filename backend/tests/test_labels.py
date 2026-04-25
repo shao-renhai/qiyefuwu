@@ -1,4 +1,4 @@
-"""对外标签覆盖与禁用词测试。"""
+"""后端 labels.py 的标签覆盖率与禁用词测试。前端 labels.ts 由人工保持同步。"""
 from pathlib import Path
 
 
@@ -35,3 +35,27 @@ def test_no_forbidden_terms_in_label_dict():
     src = Path(labels.__file__).read_text(encoding="utf-8")
     for term in FORBIDDEN_TERMS:
         assert term not in src, f"forbidden term '{term}' in labels.py"
+
+
+def test_case_labels_present():
+    """CASE_LABELS 必须包含 recommended_bank 和 approved_amount,
+    且必须显式标注是历史记录,不构成对当前客户的推荐。"""
+    from services.labels import CASE_LABELS
+    assert "recommended_bank" in CASE_LABELS
+    assert "approved_amount" in CASE_LABELS
+    for key, label in CASE_LABELS.items():
+        assert "历史" in label, \
+            f"{key} label '{label}' must mark itself as historical"
+
+
+def test_disclaimers_present_and_safe():
+    """DISCLAIMERS 必须包含 diagnosis 与 case 两条,且不得含禁用词。"""
+    from services.labels import DISCLAIMERS
+    assert "diagnosis" in DISCLAIMERS
+    assert "case" in DISCLAIMERS
+    forbidden = ["信用评分", "智能诊断", "推荐银行", "评估额度",
+                 "撮合贷款", "我们能贷"]
+    for key, text in DISCLAIMERS.items():
+        for term in forbidden:
+            assert term not in text, \
+                f"DISCLAIMERS[{key}] contains forbidden term '{term}'"

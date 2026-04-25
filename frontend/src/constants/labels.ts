@@ -12,6 +12,11 @@ export const DIAGNOSIS_LABELS: Record<string, string> = {
   loan_max:         "顾问参考区间上限",
 };
 
+export const CASE_LABELS: Record<string, string> = {
+  recommended_bank: "案例对接银行（历史记录）",
+  approved_amount:  "案例实际批复（历史记录）",
+};
+
 export const DISCLAIMERS = {
   diagnosis: "本评分为顾问内部资料整理诊断,非客户信用评估,不构成贷款承诺。",
   case:      "案例库展示历史案例供顾问参考,不代表当前客户可获相同结果。",
