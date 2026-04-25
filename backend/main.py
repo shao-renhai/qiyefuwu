@@ -1,7 +1,12 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from core.config import settings
 from db.database import init_db
+from db.database import SessionLocal
 from routers import (
     auth,
     clients,
@@ -13,9 +18,11 @@ from routers import (
     diagnosis,
     customers,
     cases,
+    financing_cases,
+    case_resources,
 )
 
-app = FastAPI(title="企业融资数据智能分析工具", version="1.0.0")
+app = FastAPI(title=settings.app_name, version=settings.app_version)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +46,25 @@ app.include_router(export.router)
 app.include_router(diagnosis.router)
 app.include_router(customers.router)
 app.include_router(cases.router)
+app.include_router(financing_cases.router)
+app.include_router(case_resources.router)
+
+
+@app.exception_handler(HTTPException)
+def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.status_code, "message": exc.detail}},
+        headers=getattr(exc, "headers", None),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"error": {"code": 422, "message": "请求参数不合法", "details": exc.errors()}},
+    )
 
 
 @app.on_event("startup")
@@ -49,3 +75,19 @@ def startup():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/health/db")
+def health_db():
+    db_ok = True
+    try:
+        db = SessionLocal()
+        db.execute(text("select 1"))
+    except Exception:
+        db_ok = False
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+    return {"status": "ok", "database": "ok" if db_ok else "error"}
