@@ -76,6 +76,14 @@ class BankStatement(Base):
 
 
 class DiagnosisRecord(Base):
+    """
+    顾问诊断记录。
+
+    业务定位:本表存储的所有 score_* 字段为顾问内部资料完整度
+    与配合度的工作记录,不是对客户的信用评分,不对外作为信用评估
+    输出。loan_min/loan_max 为顾问录入的参考区间,非系统计算。
+    详见 docs/POSITIONING.md。
+    """
     __tablename__ = "diagnosis_records"
     id = Column(Integer, primary_key=True, index=True)
     # 客户关联（新增）
@@ -131,7 +139,13 @@ def generate_share_token() -> str:
 
 
 class Customer(Base):
-    """客户主档：含电销意向/谈单接待/成交全阶段，字段逐步补齐"""
+    """
+    客户主档：含电销意向/谈单接待/成交全阶段，字段逐步补齐。
+
+    业务定位:本表客户为顾问公司的咨询服务对象,平台为数据处理者
+    (processor),顾问公司为数据控制者(controller)。征信/流水
+    数据上传须附顾问与客户签署的授权书。详见 docs/POSITIONING.md。
+    """
     __tablename__ = "customers"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -182,7 +196,13 @@ class CustomerInteraction(Base):
 
 
 class Case(Base):
-    """案例库：种子库（创始人审核发布）是 MVP 核心输出"""
+    """
+    案例库：种子库（创始人审核发布）是 MVP 核心输出。
+
+    业务定位:案例库展示历史案例,不构成对当前客户的融资建议或承诺。
+    `recommended_bank` 字段记录案例中**实际**对接过的银行,非系统推荐。
+    详见 docs/POSITIONING.md。
+    """
     __tablename__ = "cases"
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
