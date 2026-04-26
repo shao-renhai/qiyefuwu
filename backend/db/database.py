@@ -1,7 +1,7 @@
 import os
 import uuid
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, Boolean, ForeignKey, JSON
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, Boolean, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -23,6 +23,24 @@ class User(Base):
     role = Column(String, default="consultant")  # founder / consultant / telesales
     created_at = Column(DateTime, default=datetime.utcnow)
     clients = relationship("Client", back_populates="owner", cascade="all, delete-orphan")
+
+
+class UserCapability(Base):
+    """用户 capability 授权:manual_grant/subscription 持久化;role_default 不落库。"""
+    __tablename__ = "user_capabilities"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    feature_key = Column(String, nullable=False)
+    # 'manual_grant' | 'subscription'(role_default 不入库)
+    source = Column(String, nullable=False, default="manual_grant")
+    granted_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    granted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=True)   # NULL = 永久
+    revoked_at = Column(DateTime, nullable=True)   # NULL = 未撤销
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "feature_key", "source", name="uq_user_capability"),
+    )
 
 
 class Client(Base):
